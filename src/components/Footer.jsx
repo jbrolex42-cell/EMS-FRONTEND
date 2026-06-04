@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FiPhone, FiMail, FiMapPin, FiFacebook, FiInstagram, FiTwitter } from 'react-icons/fi';
+import { FiPhone, FiMail, FiMapPin, FiFacebook, FiInstagram, FiTwitter, FiYoutube, FiWhatsapp } from 'react-icons/fi';
 
 export default function Footer() {
   return (
@@ -14,18 +14,45 @@ export default function Footer() {
               </div>
               <div>
                 <div className="text-white font-semibold text-sm">EMS Kenya</div>
-                <div className="text-ems-muted text-xs">Emergency Response System</div>
+                <div className="text-ems-muted text-xs">Emergency Medical System</div>
               </div>
             </div>
             <p className="text-ems-muted text-sm leading-relaxed">
               Kenya's fastest emergency dispatch network. Powered by real-time GPS, AI triage, and community EMTs. Available across all 47 counties.
             </p>
             <div className="flex gap-3">
-              {[{ Icon: FiFacebook, href: '#' }, { Icon: FiInstagram, href: '#' }, { Icon: FiTwitter, href: '#' }].map(({ Icon, href }, i) => (
-                <a key={i} href={href} className="w-9 h-9 bg-ems-card border border-ems-border rounded-lg flex items-center justify-center text-ems-muted hover:text-emergency-red hover:border-emergency-red transition-colors">
-                  <Icon size={15} />
-                </a>
-              ))}
+                      {[
+                          {
+                            Icon: FiFacebook,
+                             href: 'https://www.facebook.com/profile.php?id=61574262032887',
+                         },
+                         {
+                            Icon: FiInstagram,
+                             href: 'https://www.instagram.com/iced.rolex?igsh=MTZ6NmlwamNidmE0NQ==',
+                         },
+                         {
+                            Icon: FiTwitter,
+                            href: 'https://x.com/kenduniccur',
+                         },
+                         {
+                            Icon: FiYoutube,
+                             href: 'https://youtube.com/@gamer254-k4c?si=aumUBJ2NgFAhbf-t',
+                        },
+                         {
+                             Icon: FiWhatsapp,
+                             href: 'https://wa.me/qr/WYE74MOMBBA3J1',
+                        },
+                        ].map(({ Icon, href }, i) => (
+                      <a
+                         key={i}
+                         href={href}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="w-9 h-9 bg-ems-card border border-ems-border rounded-lg flex items-center justify-center text-ems-muted hover:text-emergency-red hover:border-emergency-red transition-colors"
+                        >
+                        <Icon size={15} />
+                      </a>
+                       ))}
             </div>
           </div>
 
@@ -50,7 +77,7 @@ export default function Footer() {
             <h3 className="text-ems-white font-semibold text-sm uppercase tracking-widest">Contact</h3>
             <div className="space-y-3">
               {[
-                { Icon: FiPhone, text: '0700 395 395 (Toll Free: 1514)', red: true },
+                { Icon: FiPhone, text: '0757 751 980(Toll Free: 1514)', red: true },
                 { Icon: FiPhone, text: '0738 395 395' },
                 { Icon: FiMail, text: 'info@ems.co.ke' },
                 { Icon: FiMapPin, text: 'Nairobi, Kenya — 47 Counties' }
@@ -69,7 +96,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-ems-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-ems-muted text-sm">© 2026 EMS Kenya. A subsidiary of Kenya Red Cross Society. Regulated by KMPDC.</p>
+          <p className="text-ems-muted text-sm">© 2026 EMS Kenya. Developed by ROLEX.</p>
           <div className="flex gap-6">
             {['Privacy Policy', 'Terms of Service', 'KMPDC Compliance', 'SHA Integration'].map(l => (
               <Link key={l} to="#" className="text-ems-muted hover:text-white text-xs transition-colors">{l}</Link>

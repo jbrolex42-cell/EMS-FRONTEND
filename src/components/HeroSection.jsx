@@ -77,9 +77,9 @@ export default function HeroSection() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: 'Toll Free', value: '1514' },
-                  { label: 'Mobile', value: '0700 395 395' },
+                  { label: 'Mobile', value: '0757 751 980' },
                   { label: 'USSD', value: '*888#' },
-                  { label: 'WhatsApp', value: '0738 395 395' }
+                  { label: 'WhatsApp', value: '0757 751 980' }
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-ems-card border border-ems-border rounded-xl p-3 text-center">
                     <div className="text-ems-muted text-xs mb-0.5">{label}</div>

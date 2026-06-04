@@ -109,7 +109,7 @@ export default function Home() {
                 Activate My Cover <FiArrowRight size={16} />
               </Link>
               <a href="tel:0700395395" className="btn-ghost text-base py-4 px-8">
-                Call 0700 395 395
+                Call 0757751980
               </a>
             </div>
           </div>

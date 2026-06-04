@@ -27,7 +27,7 @@ export default function Navbar() {
       <div className="bg-emergency-red py-1.5 px-4 text-center">
         <span className="text-white text-xs font-medium flex items-center justify-center gap-2">
           <FiPhone className="inline" />
-          Emergency Toll Free: <strong>0700 395 395</strong> &nbsp;|&nbsp; USSD: <strong>*888#</strong>
+          Emergency Toll Free: <strong>0757 751 980</strong> &nbsp;|&nbsp; USSD: <strong>*888#</strong>
         </span>
       </div>
 
@@ -40,7 +40,7 @@ export default function Navbar() {
             </div>
             <div>
               <div className="text-white font-semibold text-sm leading-tight">Emergency Medical</div>
-              <div className="text-ems-muted text-xs">Kenya Response System</div>
+              <div className="text-ems-muted text-xs">Kenya Emergency System</div>
             </div>
           </Link>
 
