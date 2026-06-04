@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { FiPhone, FiMail, FiMapPin, FiFacebook, FiInstagram, FiTwitter, FiYoutube, FiWhatsapp } from 'react-icons/fi';
-
+import { FiPhone, FiMail, FiMapPin, FiFacebook, FiInstagram, FiTwitter, FiYoutube } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 export default function Footer() {
   return (
     <footer className="bg-ems-dark border-t border-ems-border mt-24">
@@ -39,7 +39,7 @@ export default function Footer() {
                              href: 'https://youtube.com/@gamer254-k4c?si=aumUBJ2NgFAhbf-t',
                         },
                          {
-                             Icon: FiWhatsapp,
+                             Icon: FaWhatsapp,
                              href: 'https://wa.me/qr/WYE74MOMBBA3J1',
                         },
                         ].map(({ Icon, href }, i) => (
