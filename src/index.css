@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --red: #FF3B30;
+  --red-dark: #CC0000;
+  --black: #0A0A0A;
+  --dark: #111111;
+  --card: #1A1A1A;
+  --border: #2A2A2A;
+  --muted: #666666;
+  --white: #F5F5F5;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 2px; }
+
+/* Emergency pulse */
+.pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 0.3; }
+  100% { transform: scale(0.8); opacity: 0.8; }
+}
+
+/* Leaflet map dark theme */
+.leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-container {
+  background: #0a0a0a;
+}
+
+/* Status badges */
+.status-badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide;
+}
+
+.status-pending { @apply bg-yellow-500/20 text-yellow-400; }
+.status-dispatched { @apply bg-blue-500/20 text-blue-400; }
+.status-enroute { @apply bg-orange-500/20 text-orange-400; }
+.status-completed { @apply bg-green-500/20 text-green-400; }
+.status-critical { @apply bg-red-500/20 text-red-400; }
+
+/* Card styles */
+.ems-card {
+  @apply bg-ems-card border border-ems-border rounded-2xl p-6;
+}
+
+/* Input styles */
+.ems-input {
+  @apply w-full bg-ems-dark border border-ems-border rounded-xl px-4 py-3 text-ems-white placeholder-ems-muted focus:outline-none focus:border-emergency-red transition-colors;
+}
+
+/* Button */
+.btn-emergency {
+  @apply bg-emergency-red hover:bg-emergency-dark text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 active:scale-95;
+}
+
+.btn-ghost {
+  @apply border border-ems-border hover:border-emergency-red text-ems-light hover:text-white px-6 py-3 rounded-xl transition-all duration-200;
+}
