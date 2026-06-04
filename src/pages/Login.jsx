@@ -44,10 +44,12 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-ems-black flex">
 
-      {/* LEFT PANEL */}
+      {/* ── LEFT PANEL ── */}
       <div className="hidden lg:flex flex-col w-1/2 bg-ems-dark border-r border-ems-border p-12 relative overflow-hidden">
 
-        <div className="absolute inset-0 opacity-[0.03]"
+        {/* Grid texture */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage:
               `linear-gradient(rgba(255,59,48,1) 1px, transparent 1px),
@@ -56,109 +58,133 @@ export default function Login() {
           }}
         />
 
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emergency-red/10 rounded-full blur-3xl" />
+        {/* Ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emergency-red/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emergency-red/5 rounded-full blur-2xl pointer-events-none" />
 
-        <Link to="/" className="relative flex items-center gap-3 mb-auto">
-          <div className="w-10 h-10 bg-emergency-red rounded-xl flex items-center justify-center">
-            <span className="text-white font-display text-lg">EMS</span>
+        {/* Logo */}
+        <Link to="/" className="relative flex items-center gap-3 mb-auto w-fit">
+          <div className="w-10 h-10 bg-emergency-red rounded-xl flex items-center justify-center shadow-lg shadow-emergency-red/30">
+            <span className="text-white font-display font-bold text-sm tracking-wider">EMS</span>
           </div>
           <div>
-            <div className="text-white font-semibold text-sm">EMS Kenya</div>
+            <div className="text-white font-semibold text-sm leading-tight">EMS Kenya</div>
             <div className="text-ems-muted text-xs">Emergency Response System</div>
           </div>
         </Link>
 
-        <div className="relative space-y-8">
-          <h2 className="text-5xl font-display text-white leading-none">
+        {/* Hero copy */}
+        <div className="relative space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emergency-red/30 bg-emergency-red/10 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emergency-red animate-pulse" />
+            <span className="text-emergency-red text-xs font-medium tracking-wider uppercase">Live System</span>
+          </div>
+
+          <h2 className="text-5xl font-display text-white leading-[1.05] tracking-tight">
             EVERY SECOND<br />
             <span className="text-emergency-red">MATTERS.</span>
           </h2>
 
-          <p className="text-ems-muted leading-relaxed">
-            Sign in to access Kenya's emergency response network.
+          <p className="text-ems-muted leading-relaxed max-w-xs">
+            Sign in to access Kenya's emergency response network and coordinate life-saving operations.
           </p>
         </div>
 
-        <div className="relative mt-auto pt-8 border-t border-ems-border">
-          <p className="text-ems-muted text-xs">
-            Regulated by KMPDC · 24/7 Emergency System
-          </p>
+        {/* Footer */}
+        <div className="relative mt-auto pt-8 border-t border-ems-border flex items-center justify-between">
+          <p className="text-ems-muted text-xs">Regulated by KMPDC</p>
+          <p className="text-ems-muted text-xs">24/7 Emergency System</p>
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* ── RIGHT PANEL ── */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-
         <div className="w-full max-w-md">
 
-          <h1 className="text-3xl font-display text-white mb-2">
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-3 mb-8">
+            <div className="w-9 h-9 bg-emergency-red rounded-xl flex items-center justify-center shadow-lg shadow-emergency-red/30">
+              <span className="text-white font-bold text-xs tracking-wider">EMS</span>
+            </div>
+            <div>
+              <div className="text-white font-semibold text-sm">EMS Kenya</div>
+              <div className="text-ems-muted text-xs">Emergency Response System</div>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-display text-white tracking-tight mb-1">
             WELCOME BACK
           </h1>
           <p className="text-ems-muted text-sm mb-8">
-            Sign in to your account
+            Sign in to your account to continue
           </p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
 
             {/* EMAIL */}
-            <div>
-              <label className="text-sm text-white mb-2 block">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-white block">
                 Email Address
               </label>
-
               <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={16} />
-
+                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
                 <input
                   type="email"
-                  placeholder="you@example.com"
                   autoComplete="email"
                   {...register('email', {
-                    required: 'Email required',
+                    required: 'Email is required',
                     pattern: {
-                      value: /^\S+@\S+$/,
-                      message: 'Invalid email'
+                      value: /^\S+@\S+\.\S+$/,
+                      message: 'Enter a valid email address'
                     }
                   })}
-                  className="ems-input pl-11"
+                  className={`ems-input pl-11 transition-colors ${
+                    errors.email ? 'border-red-500/70 focus:border-red-500' : ''
+                  }`}
                 />
               </div>
-
               {errors.email && (
-                <p className="text-red-400 text-xs mt-1">
+                <p className="text-red-400 text-xs flex items-center gap-1 mt-1">
                   {errors.email.message}
                 </p>
               )}
             </div>
 
             {/* PASSWORD */}
-            <div>
-              <label className="text-sm text-white mb-2 block">
-                Password
-              </label>
-
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-white">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-emergency-red text-xs hover:text-emergency-red/80 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={16} />
-
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
                 <input
                   type={showPass ? 'text' : 'password'}
                   placeholder="Your password"
                   autoComplete="current-password"
                   {...register('password', {
-                    required: 'Password required'
+                    required: 'Password is required'
                   })}
-                  className="ems-input pl-11 pr-11"
+                  className={`ems-input pl-11 pr-11 transition-colors ${
+                    errors.password ? 'border-red-500/70 focus:border-red-500' : ''
+                  }`}
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ems-muted"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ems-muted hover:text-white transition-colors"
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
-                  {showPass ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  {showPass ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                 </button>
               </div>
-
               {errors.password && (
                 <p className="text-red-400 text-xs mt-1">
                   {errors.password.message}
@@ -166,47 +192,42 @@ export default function Login() {
               )}
             </div>
 
-            {/* FORGOT PASSWORD */}
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-emergency-red text-sm">
-                Forgot password?
-              </Link>
-            </div>
-
-            {/* BUTTON */}
+            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading}
-              className="btn-emergency w-full py-3 flex items-center justify-center gap-2"
+              className="btn-emergency w-full py-3 flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
             >
               {loading ? (
                 <Loader size="sm" />
               ) : (
                 <>
-                  Sign In <FiArrowRight size={16} />
+                  Sign In
+                  <FiArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
 
-          {/* REGISTER */}
+          {/* REGISTER LINK */}
           <p className="text-center text-sm text-ems-muted mt-8">
-            No account?{' '}
-            <Link to="/register" className="text-emergency-red">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-emergency-red hover:text-emergency-red/80 font-medium transition-colors">
               Create one
             </Link>
           </p>
 
-          {/* EMERGENCY */}
-          <div className="mt-6 p-4 border border-emergency-red/20 rounded-xl text-center">
-            <p className="text-xs text-ems-muted mb-1">
-              Emergency line
+          {/* EMERGENCY CALLOUT */}
+          <div className="mt-6 p-4 border border-emergency-red/20 rounded-xl bg-emergency-red/[0.04] text-center">
+            <p className="text-xs text-ems-muted mb-2">
+              In an emergency? Call now
             </p>
             <a
               href="tel:1514"
-              className="text-emergency-red font-bold flex justify-center items-center gap-2"
+              className="text-emergency-red font-bold flex justify-center items-center gap-2 hover:text-emergency-red/80 transition-colors text-lg"
             >
-              <FiPhone size={16} /> 1514
+              <FiPhone size={16} />
+              1514
             </a>
           </div>
 
