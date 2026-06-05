@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { ROLE_HOME } from '../context/AuthContext';
 import {
   FiUser,
   FiMail,
@@ -39,7 +40,7 @@ export default function Register() {
     try {
       const res = await registerUser(data);
       toast.success(`Welcome to EMS Kenya, ${res.user.firstName}!`);
-      navigate('/dashboard');
+      navigate(ROLE_HOME[res.user.role] || '/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
