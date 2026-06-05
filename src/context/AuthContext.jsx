@@ -1,15 +1,25 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { initSocket, disconnectSocket } from '../services/socketService';
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('ems_token'));
+// Role-based redirect map — single source of truth
+export const ROLE_HOME = {
+  patient:    '/dashboard',
+  emt:        '/emt',
+  admin:      '/admin',
+  superadmin: '/admin',
+  hospital:   '/dashboard',
+};
 
+export const AuthProvider = ({ children }) => {
+  const [user, setUser]       = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // On mount: if a token exists in localStorage, verify it with the server
   useEffect(() => {
+    const token = localStorage.getItem('ems_token');
     if (token) {
       fetchMe();
     } else {
@@ -29,43 +39,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Login — returns { user, token } so callers can read user.role for redirect
   const login = async (credentials) => {
     const { data } = await authService.login(credentials);
     localStorage.setItem('ems_token', data.token);
     localStorage.setItem('ems_refresh', data.refreshToken);
-    setToken(data.token);
     setUser(data.user);
     initSocket();
-    return data;
+    return data;   // ← caller uses data.user.role to navigate
   };
 
+  // Register
   const register = async (userData) => {
     const { data } = await authService.register(userData);
     localStorage.setItem('ems_token', data.token);
     localStorage.setItem('ems_refresh', data.refreshToken);
-    setToken(data.token);
     setUser(data.user);
     initSocket();
     return data;
   };
 
   const logout = async () => {
-    try { await authService.logout(); } catch {}
+    try { await authService.logout(); } catch { /* ignore */ }
     clearAuth();
   };
 
   const clearAuth = () => {
     localStorage.removeItem('ems_token');
     localStorage.removeItem('ems_refresh');
-    setToken(null);
     setUser(null);
     disconnectSocket();
   };
 
-  const updateUser = (updates) => setUser(prev => ({ ...prev, ...updates }));
+  const updateUser = (updates) =>
+    setUser(prev => ({ ...prev, ...updates }));
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      updateUser,
+      isAuthenticated: !!user,
+      // token still accessible from localStorage directly by api.js interceptor
+    }}>
       {children}
     </AuthContext.Provider>
   );
