@@ -23,6 +23,8 @@ import AdminFleet from '../pages/admin/AdminFleet';
 import AdminHospitals from '../pages/admin/AdminHospitals';
 import AdminMemberships from '../pages/admin/AdminMemberships';
 import AdminManagement from '../pages/admin/AdminManagement';
+import AdminUpdates from '../pages/admin/AdminUpdates';
+import EMSUpdates from '../pages/EMSUpdates';
 
 // EMT pages
 import EMTDashboard from '../pages/EMTDashboard';
@@ -40,6 +42,7 @@ export default function AppRoutes() {
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route path="/membership" element={<Membership />} />
       <Route path="/hospitals" element={<Hospitals />} />
+      <Route path="/updates" element={<EMSUpdates />} />
 
       {/* ── Patient Protected ───────────────────── */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -60,6 +63,7 @@ export default function AppRoutes() {
       <Route path="/admin/hospitals" element={<ProtectedRoute roles={['admin','superadmin']}><AdminHospitals /></ProtectedRoute>} />
       <Route path="/admin/memberships" element={<ProtectedRoute roles={['admin','superadmin']}><AdminMemberships /></ProtectedRoute>} />
       <Route path="/admin/manage-admins" element={<ProtectedRoute roles={['superadmin']}><AdminManagement /></ProtectedRoute>} />
+      <Route path="/admin/updates" element={<ProtectedRoute roles={['admin','superadmin']}><AdminUpdates /></ProtectedRoute>} />
 
       {/* ── 404 ─────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
