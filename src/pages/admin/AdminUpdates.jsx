@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
   FiPlus, FiTrash2, FiEdit2, FiX, FiImage,
   FiVideo, FiFileText, FiRefreshCw, FiEye,
-  FiUpload, FiLink, FiAlertTriangle
+  FiUpload, FiLink, FiAlertTriangle, FiCheck,
 } from 'react-icons/fi';
 import Loader from '../../components/Loader';
 
@@ -19,10 +19,10 @@ const TYPE_OPTIONS = [
 ];
 
 /* ── Delete confirm ──────────────────────────────────────────────────── */
-function DeleteModal({ post, onConfirm, onCancel }) {
+function DeleteModal({ post, onConfirm, onCancel, deleting }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={!deleting ? onCancel : undefined} />
       <div className="relative w-full max-w-sm ems-card border border-red-500/20 shadow-2xl">
         <div className="flex items-start gap-3 mb-5">
           <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
@@ -31,14 +31,22 @@ function DeleteModal({ post, onConfirm, onCancel }) {
           <div>
             <h3 className="text-ems-white font-semibold text-sm">Delete Post</h3>
             <p className="text-ems-muted text-xs mt-1 leading-relaxed">
-              "<span className="text-white">{post.title}</span>" will be permanently deleted and removed from the public page.
+              "<span className="text-white">{post.title}</span>" will be permanently deleted along with any uploaded media.
             </p>
           </div>
-          <button onClick={onCancel} className="text-ems-muted hover:text-white ml-auto"><FiX size={15} /></button>
+          {!deleting && (
+            <button onClick={onCancel} className="text-ems-muted hover:text-white ml-auto"><FiX size={15} /></button>
+          )}
         </div>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-xl border border-ems-border text-ems-muted text-sm hover:text-white transition-colors">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors">Delete</button>
+          <button onClick={onCancel} disabled={deleting}
+            className="flex-1 py-2 rounded-xl border border-ems-border text-ems-muted text-sm hover:text-white transition-colors disabled:opacity-40">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={deleting}
+            className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+            {deleting ? <><Loader size="sm" /> Deleting…</> : 'Delete'}
+          </button>
         </div>
       </div>
     </div>
@@ -47,45 +55,116 @@ function DeleteModal({ post, onConfirm, onCancel }) {
 
 /* ── Create / Edit Panel ─────────────────────────────────────────────── */
 function PostPanel({ editing, onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedType, setSelectedType] = useState(editing?.type || 'news');
-  const [mediaMode, setMediaMode] = useState('url'); // 'url' | 'upload'
-  const [preview, setPreview] = useState(editing?.mediaUrl || '');
+  const [mediaMode, setMediaMode]       = useState('url');
+  const [preview, setPreview]           = useState(editing?.mediaUrl || '');
+  // Track the Cloudinary publicId of the currently staged upload
+  // so we can delete it from Cloudinary if the user replaces or cancels
+  const [stagedPublicId, setStagedPublicId]         = useState(null);
+  const [stagedResourceType, setStagedResourceType] = useState('image');
   const fileRef = useRef();
+  const xhrRef  = useRef(); // so we can abort in-flight uploads
 
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
     defaultValues: editing ? {
-      title: editing.title,
-      summary: editing.summary,
-      body: editing.body,
+      title:    editing.title,
+      summary:  editing.summary,
+      body:     editing.body,
       mediaUrl: editing.mediaUrl,
-    } : {}
+    } : {},
   });
 
   const mediaUrl = watch('mediaUrl');
   useEffect(() => { setPreview(mediaUrl); }, [mediaUrl]);
 
+  // Abort any in-flight upload and clean up on unmount
+  useEffect(() => {
+    return () => { xhrRef.current?.abort(); };
+  }, []);
+
+  const handleTypeChange = (value) => {
+    setSelectedType(value);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  /* Delete a Cloudinary asset (fire-and-forget helper) */
+  const deleteCloudinaryAsset = async (publicId, resourceType = 'image') => {
+    if (!publicId) return;
+    try {
+      await api.delete('/uploads/media', { data: { publicId, resourceType } });
+    } catch (err) {
+      console.warn('Could not delete Cloudinary asset:', err.message);
+    }
+  };
+
+  /* Clear the current media (and remove from Cloudinary if it was just uploaded) */
+  const handleClearMedia = async () => {
+    // Only delete from Cloudinary if it was a fresh upload in this session
+    // (not the original URL on an existing post — that gets cleaned up on post delete)
+    if (stagedPublicId) {
+      await deleteCloudinaryAsset(stagedPublicId, stagedResourceType);
+      setStagedPublicId(null);
+    }
+    setValue('mediaUrl', '');
+    setPreview('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  /* Upload file to backend → Cloudinary */
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Upload to your media endpoint
+
+    // If there's already a staged upload from this session, delete it first
+    if (stagedPublicId) {
+      await deleteCloudinaryAsset(stagedPublicId, stagedResourceType);
+      setStagedPublicId(null);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
+
+    setUploading(true);
+    setUploadProgress(0);
+
     try {
-      const res = await api.post('/uploads/media', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const url = res.data.url;
+      const res = await api.post('/uploads/media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (evt) => {
+          if (evt.total) {
+            setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+          }
+        },
+      });
+
+      const { url, publicId, resourceType } = res.data;
       setValue('mediaUrl', url);
       setPreview(url);
-      toast.success('Media uploaded');
-    } catch {
-      toast.error('Upload failed — try a URL instead');
+      setStagedPublicId(publicId);
+      setStagedResourceType(resourceType || 'image');
+      toast.success('Media uploaded successfully');
+    } catch (err) {
+      console.error('Media upload error:', err);
+      toast.error(err.response?.data?.message || 'Upload failed — try a URL instead');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const payload = { ...data, type: selectedType };
+      const payload = {
+        ...data,
+        type: selectedType,
+        // Pass publicId & resourceType so backend can clean up old media on updates
+        ...(stagedPublicId && { mediaPublicId: stagedPublicId, mediaResourceType: stagedResourceType }),
+      };
+
       if (editing) {
         await api.put(`/updates/${editing._id}`, payload);
         toast.success('Post updated');
@@ -93,6 +172,7 @@ function PostPanel({ editing, onClose, onSuccess }) {
         await api.post('/updates', payload);
         toast.success('Post published');
       }
+
       reset();
       onSuccess();
       onClose();
@@ -102,6 +182,8 @@ function PostPanel({ editing, onClose, onSuccess }) {
       setLoading(false);
     }
   };
+
+  const isVideo = selectedType === 'video';
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -127,9 +209,11 @@ function PostPanel({ editing, onClose, onSuccess }) {
             <div className="grid grid-cols-4 gap-2">
               {TYPE_OPTIONS.map(({ value, label, icon: Icon, color, bg }) => (
                 <button key={value} type="button"
-                  onClick={() => setSelectedType(value)}
+                  onClick={() => handleTypeChange(value)}
                   className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all ${
-                    selectedType === value ? `${bg} ${color} border-current` : 'border-ems-border text-ems-muted hover:text-white hover:border-ems-muted'
+                    selectedType === value
+                      ? `${bg} ${color} border-current`
+                      : 'border-ems-border text-ems-muted hover:text-white hover:border-ems-muted'
                   }`}>
                   <Icon size={16} />
                   {label}
@@ -167,58 +251,92 @@ function PostPanel({ editing, onClose, onSuccess }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-ems-muted uppercase tracking-wider">
-                {selectedType === 'video' ? 'Video' : 'Image'} (optional)
+                {isVideo ? 'Video' : 'Image'} (optional)
               </label>
               <div className="flex gap-1">
                 {['url', 'upload'].map(m => (
                   <button key={m} type="button" onClick={() => setMediaMode(m)}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${mediaMode === m ? 'bg-ems-border text-white' : 'text-ems-muted hover:text-white'}`}>
-                    {m === 'url' ? <><FiLink size={10} className="inline mr-1" />URL</> : <><FiUpload size={10} className="inline mr-1" />Upload</>}
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                      mediaMode === m ? 'bg-ems-border text-white' : 'text-ems-muted hover:text-white'
+                    }`}>
+                    {m === 'url'
+                      ? <><FiLink size={10} className="inline mr-1" />URL</>
+                      : <><FiUpload size={10} className="inline mr-1" />Upload</>}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Always-mounted hidden file input so ref is always valid */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept={isVideo ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp,image/gif'}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
             {mediaMode === 'url' ? (
               <input {...register('mediaUrl')}
-                placeholder={selectedType === 'video' ? 'https://... .mp4' : 'https://... .jpg'}
+                placeholder={isVideo ? 'https://... .mp4' : 'https://... .jpg'}
                 className="ems-input text-sm w-full" />
             ) : (
               <div>
-                <input ref={fileRef} type="file"
-                  accept={selectedType === 'video' ? 'video/*' : 'image/*'}
-                  onChange={handleFileChange} className="hidden" />
-                <button type="button" onClick={() => fileRef.current?.click()}
-                  className="w-full py-8 rounded-xl border-2 border-dashed border-ems-border text-ems-muted hover:border-emergency-red/40 hover:text-white transition-colors text-sm flex flex-col items-center gap-2">
-                  <FiUpload size={20} />
-                  Click to upload {selectedType === 'video' ? 'video' : 'image'}
-                </button>
+                {uploading ? (
+                  /* Upload progress bar */
+                  <div className="w-full py-6 px-4 rounded-xl border-2 border-dashed border-ems-border flex flex-col items-center gap-3">
+                    <p className="text-ems-muted text-xs">Uploading to Cloudinary…</p>
+                    <div className="w-full bg-ems-border rounded-full h-1.5">
+                      <div
+                        className="bg-emergency-red h-1.5 rounded-full transition-all duration-200"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-ems-muted text-xs">{uploadProgress}%</p>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className="w-full py-8 rounded-xl border-2 border-dashed border-ems-border text-ems-muted hover:border-emergency-red/40 hover:text-white transition-colors text-sm flex flex-col items-center gap-2">
+                    <FiUpload size={20} />
+                    <span>Click to upload {isVideo ? 'video' : 'image'}</span>
+                    <span className="text-xs opacity-60">
+                      {isVideo ? 'MP4, MOV, WebM — max 100MB' : 'JPG, PNG, WebP, GIF — max 100MB'}
+                    </span>
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Preview */}
-            {preview && selectedType !== 'video' && (
-              <div className="relative rounded-xl overflow-hidden h-32 border border-ems-border">
+            {/* Preview — image */}
+            {preview && !isVideo && (
+              <div className="relative rounded-xl overflow-hidden h-36 border border-ems-border">
                 <img src={preview} alt="preview" className="w-full h-full object-cover" />
-                <button type="button" onClick={() => { setValue('mediaUrl', ''); setPreview(''); }}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80">
+                <button type="button" onClick={handleClearMedia}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-black/90 transition-colors">
                   <FiX size={11} />
                 </button>
               </div>
             )}
-            {preview && selectedType === 'video' && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-ems-black border border-ems-border text-xs text-ems-muted">
-                <FiVideo size={13} className="text-red-400" /> Video URL set
-                <button type="button" onClick={() => { setValue('mediaUrl', ''); setPreview(''); }}
-                  className="ml-auto text-red-400 hover:text-red-300"><FiX size={13} /></button>
+
+            {/* Preview — video */}
+            {preview && isVideo && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-ems-black border border-ems-border text-xs">
+                <FiCheck size={13} className="text-green-400 flex-shrink-0" />
+                <span className="text-ems-muted truncate flex-1">{preview}</span>
+                <button type="button" onClick={handleClearMedia}
+                  className="text-red-400 hover:text-red-300 flex-shrink-0"><FiX size={13} /></button>
               </div>
             )}
           </div>
 
           {/* Submit */}
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={loading || uploading}
             className="w-full py-3 rounded-xl bg-emergency-red hover:bg-emergency-red/90 text-white font-medium text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? <Loader size="sm" /> : editing ? <><FiEdit2 size={14} /> Update Post</> : <><FiPlus size={14} /> Publish Post</>}
+            {loading
+              ? <><Loader size="sm" /> Saving…</>
+              : editing
+                ? <><FiEdit2 size={14} /> Update Post</>
+                : <><FiPlus size={14} /> Publish Post</>}
           </button>
         </form>
       </div>
@@ -228,14 +346,15 @@ function PostPanel({ editing, onClose, onSuccess }) {
 
 /* ── Main Admin Updates Page ─────────────────────────────────────────── */
 export default function AdminUpdates() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState('');
-  const [showPanel, setShowPanel] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [posts, setPosts]             = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [total, setTotal]             = useState(0);
+  const [page, setPage]               = useState(1);
+  const [typeFilter, setTypeFilter]   = useState('');
+  const [showPanel, setShowPanel]     = useState(false);
+  const [editing, setEditing]         = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting]       = useState(false);
 
   useEffect(() => { fetchPosts(); }, [page, typeFilter]);
 
@@ -246,33 +365,57 @@ export default function AdminUpdates() {
       const res = await api.get(`/updates?${params}`);
       setPosts(res.data.posts || []);
       setTotal(res.data.total || 0);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
+      // The backend DELETE /updates/:id should also destroy the Cloudinary asset
+      // using the mediaPublicId stored on the post document
       await api.delete(`/updates/${deleteTarget._id}`);
       toast.success('Post deleted');
       setDeleteTarget(null);
       fetchPosts();
-    } catch { toast.error('Failed to delete post'); }
+    } catch {
+      toast.error('Failed to delete post');
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const openEdit = (post) => { setEditing(post); setShowPanel(true); };
-  const openCreate = () => { setEditing(null); setShowPanel(true); };
-
-  const typeCfg = (type) => TYPE_OPTIONS.find(t => t.value === type) || TYPE_OPTIONS[0];
+  const openEdit   = (post) => { setEditing(post); setShowPanel(true); };
+  const openCreate = ()     => { setEditing(null);  setShowPanel(true); };
+  const typeCfg    = (type) => TYPE_OPTIONS.find(t => t.value === type) || TYPE_OPTIONS[0];
 
   return (
     <AdminLayout title="EMS Updates">
-      {deleteTarget && <DeleteModal post={deleteTarget} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />}
-      {showPanel && <PostPanel editing={editing} onClose={() => { setShowPanel(false); setEditing(null); }} onSuccess={fetchPosts} />}
+      {deleteTarget && (
+        <DeleteModal
+          post={deleteTarget}
+          onConfirm={handleDelete}
+          onCancel={() => !deleting && setDeleteTarget(null)}
+          deleting={deleting}
+        />
+      )}
+      {showPanel && (
+        <PostPanel
+          editing={editing}
+          onClose={() => { setShowPanel(false); setEditing(null); }}
+          onSuccess={fetchPosts}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-ems-muted text-sm">Posts are visible to the public at <span className="text-white">/updates</span></p>
+          <p className="text-ems-muted text-sm">
+            Posts are visible to the public at <span className="text-white">/updates</span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <a href="/updates" target="_blank" rel="noreferrer"
@@ -295,7 +438,9 @@ export default function AdminUpdates() {
         {[{ value: '', label: 'All Posts' }, ...TYPE_OPTIONS.map(t => ({ value: t.value, label: t.label }))].map(({ value, label }) => (
           <button key={value} onClick={() => { setTypeFilter(value); setPage(1); }}
             className={`px-4 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-              typeFilter === value ? 'bg-emergency-red border-emergency-red text-white' : 'border-ems-border text-ems-muted hover:text-white'
+              typeFilter === value
+                ? 'bg-emergency-red border-emergency-red text-white'
+                : 'border-ems-border text-ems-muted hover:text-white'
             }`}>
             {label}
           </button>
@@ -322,7 +467,7 @@ export default function AdminUpdates() {
               </thead>
               <tbody className="divide-y divide-ems-border">
                 {posts.map(post => {
-                  const cfg = typeCfg(post.type);
+                  const cfg  = typeCfg(post.type);
                   const Icon = cfg.icon;
                   return (
                     <tr key={post._id} className="hover:bg-ems-dark/60 transition-colors group">
@@ -342,7 +487,9 @@ export default function AdminUpdates() {
                         <span className={`status-badge text-xs border ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                       </td>
                       <td className="py-3 pr-4 text-ems-muted text-xs">
-                        {post.mediaUrl ? <span className="text-green-400">✓ Yes</span> : <span className="text-ems-muted">—</span>}
+                        {post.mediaUrl
+                          ? <span className="text-green-400">✓ Yes</span>
+                          : <span className="text-ems-muted">—</span>}
                       </td>
                       <td className="py-3 pr-4 text-ems-muted text-xs">
                         {post.author ? `${post.author.firstName} ${post.author.lastName}` : '—'}
@@ -365,6 +512,7 @@ export default function AdminUpdates() {
                 })}
               </tbody>
             </table>
+
             {posts.length === 0 && (
               <div className="text-center py-16">
                 <FiFileText className="text-ems-muted mx-auto mb-3" size={22} />
