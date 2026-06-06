@@ -11,106 +11,91 @@ export default function VerifyEmail() {
   useEffect(() => {
     const verify = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/auth/verify/${token}`
-        );
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/auth/verify/${token}`);
         setStatus('success');
-        setMessage(res.data.message);
+        setMessage(res.data.message || 'Email verified successfully!');
       } catch (err) {
         setStatus('error');
-        setMessage(err.response?.data?.message || 'Verification failed. The link may have expired.');
+        setMessage(
+          err.response?.data?.message || 'Verification failed. The link may be invalid or expired.'
+        );
       }
     };
-    if (token) verify();
+
+    if (token) {
+      verify();
+    } else {
+      setStatus('error');
+      setMessage('No verification token found.');
+    }
   }, [token]);
 
   return (
     <div className="min-h-screen bg-ems-black flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
 
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-emergency-red rounded-xl flex items-center justify-center shadow-lg shadow-emergency-red/30">
-            <span className="text-white font-bold text-sm tracking-wider">EMS</span>
-          </div>
-          <div className="text-left">
-            <div className="text-white font-semibold text-sm">EMS Kenya</div>
-            <div className="text-ems-muted text-xs">Emergency Response System</div>
-          </div>
-        </div>
-
-        <div className="ems-card">
-          {status === 'loading' && (
-            <div className="py-8 space-y-4">
-              <div className="w-14 h-14 rounded-full border-2 border-emergency-red border-t-transparent animate-spin mx-auto" />
-              <p className="text-ems-muted">Verifying your account...</p>
+        {/* Loading */}
+        {status === 'loading' && (
+          <>
+            <div className="w-16 h-16 bg-emergency-red/10 border border-emergency-red/30 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <FiLoader size={28} className="text-emergency-red animate-spin" />
             </div>
-          )}
+            <h1 className="text-2xl font-display text-white tracking-tight mb-2">VERIFYING YOUR EMAIL</h1>
+            <p className="text-ems-muted text-sm">Please wait a moment...</p>
+          </>
+        )}
 
-          {status === 'success' && (
-            <div className="py-8 space-y-4">
-              <FiCheckCircle size={52} className="text-green-400 mx-auto" />
-              <h2 className="text-ems-white text-xl font-display">Account Verified!</h2>
-              <p className="text-ems-muted text-sm">{message}</p>
-              <Link to="/login"
-                className="btn-emergency inline-flex items-center gap-2 px-8 py-3 mt-2">
-                Sign In Now
+        {/* Success */}
+        {status === 'success' && (
+          <>
+            <div className="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FiCheckCircle size={28} className="text-green-400" />
+            </div>
+            <h1 className="text-2xl font-display text-white tracking-tight mb-2">EMAIL VERIFIED ✅</h1>
+            <p className="text-ems-muted text-sm mb-8">{message}</p>
+            <Link
+              to="/login"
+              className="btn-emergency inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold"
+            >
+              Sign In Now →
+            </Link>
+          </>
+        )}
+
+        {/* Error */}
+        {status === 'error' && (
+          <>
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FiXCircle size={28} className="text-red-400" />
+            </div>
+            <h1 className="text-2xl font-display text-white tracking-tight mb-2">VERIFICATION FAILED</h1>
+            <p className="text-ems-muted text-sm mb-8">{message}</p>
+            <div className="space-y-3">
+              <Link
+                to="/login"
+                className="btn-emergency inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold w-full"
+              >
+                Back to Sign In
               </Link>
+              <p className="text-ems-muted text-xs">
+                Need a new link?{' '}
+                <Link to="/login" className="text-emergency-red hover:text-emergency-red/80 underline">
+                  Sign in and request a resend
+                </Link>
+              </p>
             </div>
-          )}
+          </>
+        )}
 
-          {status === 'error' && (
-            <div className="py-8 space-y-4">
-              <FiXCircle size={52} className="text-red-400 mx-auto" />
-              <h2 className="text-ems-white text-xl font-display">Verification Failed</h2>
-              <p className="text-ems-muted text-sm">{message}</p>
-              <ResendForm />
-            </div>
-          )}
+        {/* EMS branding */}
+        <div className="mt-12 flex items-center justify-center gap-3">
+          <div className="w-8 h-8 bg-emergency-red rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-xs">EMS</span>
+          </div>
+          <span className="text-ems-muted text-xs">EMS Kenya — Emergency Response System</span>
         </div>
+
       </div>
-    </div>
-  );
-}
-
-function ResendForm() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleResend = async () => {
-    if (!email) return;
-    setLoading(true);
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/resend-verification`, { email });
-      setSent(true);
-    } catch (e) {
-      setSent(true); // always show success to prevent enumeration
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (sent) return (
-    <p className="text-green-400 text-sm mt-4">
-      ✅ If that email exists and is unverified, a new link has been sent.
-    </p>
-  );
-
-  return (
-    <div className="mt-4 space-y-3">
-      <p className="text-ems-muted text-xs">Need a new verification link?</p>
-      <input
-        type="email"
-        placeholder="Enter your email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        className="ems-input w-full"
-      />
-      <button onClick={handleResend} disabled={loading || !email}
-        className="btn-emergency w-full py-2.5 disabled:opacity-60">
-        {loading ? 'Sending...' : 'Resend Verification Email'}
-      </button>
     </div>
   );
 }
