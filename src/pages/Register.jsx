@@ -13,7 +13,10 @@ import {
   FiEyeOff,
   FiArrowRight,
   FiCheckCircle,
-  FiMapPin
+  FiMapPin,
+  FiShield,
+  FiActivity,
+  FiHeart
 } from 'react-icons/fi';
 import Loader from '../components/Loader';
 import { KENYAN_COUNTIES } from '../utils/constants';
@@ -22,6 +25,7 @@ export default function Register() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
 
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
@@ -36,9 +40,13 @@ export default function Register() {
   const password = watch('password');
 
   const onSubmit = async (data) => {
+    if (!selectedRole) {
+      toast.error('Please select your account type to continue.');
+      return;
+    }
     setLoading(true);
     try {
-      const res = await registerUser(data);
+      const res = await registerUser({ ...data, role: selectedRole });
       toast.success(`Welcome to EMS Kenya, ${res.user.firstName}!`);
       navigate(ROLE_HOME[res.user.role] || '/dashboard');
     } catch (err) {
@@ -268,6 +276,53 @@ export default function Register() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* ROLE SELECTION */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white block">
+                Account Type
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    value: 'patient',
+                    icon: <FiHeart size={20} />,
+                    label: 'Patient',
+                    desc: 'Request emergency services'
+                  },
+                  {
+                    value: 'emt',
+                    icon: <FiActivity size={20} />,
+                    label: 'EMT',
+                    desc: 'Respond to emergencies'
+                  },
+                  {
+                    value: 'admin',
+                    icon: <FiShield size={20} />,
+                    label: 'Admin',
+                    desc: 'Manage the system'
+                  }
+                ].map(({ value, icon, label, desc }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setSelectedRole(value)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all duration-150 ${
+                      selectedRole === value
+                        ? 'border-emergency-red bg-emergency-red/10 text-white'
+                        : 'border-ems-border bg-ems-dark text-ems-muted hover:border-emergency-red/40 hover:text-white'
+                    }`}
+                  >
+                    <span className={selectedRole === value ? 'text-emergency-red' : ''}>{icon}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
+                    <span className="text-xs leading-tight opacity-70 hidden sm:block">{desc}</span>
+                  </button>
+                ))}
+              </div>
+              {!selectedRole && (
+                <p className="text-ems-muted text-xs mt-1">Select the role that best describes you</p>
+              )}
             </div>
 
             {/* PASSWORD */}

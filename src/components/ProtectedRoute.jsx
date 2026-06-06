@@ -1,32 +1,34 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FullPageLoader } from './Loader';
+import Loader from './Loader';
 
-// Role-based home pages — where each role lands when authenticated
-const roleHome = {
-  patient:    '/dashboard',
-  emt:        '/emt',
-  admin:      '/admin',
-  superadmin: '/admin',
-  hospital:   '/dashboard',
-};
-
-export default function ProtectedRoute({ children, roles = [] }) {
-  const { user, loading, isAuthenticated } = useAuth();
+export default function ProtectedRoute({ children, roles }) {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Still verifying token / fetching user
-  if (loading) return <FullPageLoader text="Verifying access..." />;
+  // Still checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-ems-black flex items-center justify-center">
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
-  // Not logged in → send to login, remember where they were going
-  if (!isAuthenticated) {
+  // Not logged in → send to login
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Logged in but wrong role → send them to their correct home
-  if (roles.length > 0 && !roles.includes(user?.role)) {
-    const home = roleHome[user?.role] || '/dashboard';
-    return <Navigate to={home} replace />;
+  // Logged in but wrong role → redirect to their correct dashboard
+  if (roles && !roles.includes(user.role)) {
+    const roleHome = {
+      admin:      '/admin',
+      superadmin: '/admin',
+      emt:        '/emt',
+      patient:    '/dashboard'
+    };
+    return <Navigate to={roleHome[user.role] || '/dashboard'} replace />;
   }
 
   return children;
