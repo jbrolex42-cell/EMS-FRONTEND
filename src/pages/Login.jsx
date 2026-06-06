@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiPhone } from 'react-icons/fi';
 import Loader from '../components/Loader';
@@ -10,10 +9,6 @@ import Loader from '../components/Loader';
 export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [unverified, setUnverified] = useState(false);
-  const [unverifiedEmail, setUnverifiedEmail] = useState('');
-  const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,34 +19,16 @@ export default function Login() {
 
   const onSubmit = async (data) => {
     setLoading(true);
-    setUnverified(false);
     try {
       const res = await login(data);
       toast.success(`Welcome back, ${res.user.firstName}!`);
       const redirectMap = { admin: '/admin', superadmin: '/admin', emt: '/emt' };
       navigate(redirectMap[res.user.role] || from, { replace: true });
     } catch (err) {
-      if (err.response?.data?.unverified) {
-        setUnverified(true);
-        setUnverifiedEmail(data.email);
-      } else {
-        toast.error(err.response?.data?.message || 'Login failed. Please try again.');
-      }
+      const message = err.response?.data?.message || 'Login failed. Please try again.';
+      toast.error(message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setResending(true);
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/resend-verification`, { email: unverifiedEmail });
-      setResent(true);
-      toast.success('Verification email sent! Check your inbox.');
-    } catch {
-      toast.error('Failed to resend. Try again.');
-    } finally {
-      setResending(false);
     }
   };
 
@@ -111,24 +88,6 @@ export default function Login() {
 
           <h1 className="text-3xl font-display text-white tracking-tight mb-1">WELCOME BACK</h1>
           <p className="text-ems-muted text-sm mb-8">Sign in to your account to continue</p>
-
-          {/* ── UNVERIFIED BANNER ── */}
-          {unverified && (
-            <div className="mb-5 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10">
-              <p className="text-yellow-400 text-sm font-medium mb-1">Email not verified</p>
-              <p className="text-ems-muted text-xs mb-3">
-                Please verify your email before logging in. Check your inbox for the verification link.
-              </p>
-              {resent ? (
-                <p className="text-green-400 text-xs">✅ New verification email sent — check your inbox.</p>
-              ) : (
-                <button onClick={handleResend} disabled={resending}
-                  className="text-xs text-yellow-400 hover:text-yellow-300 underline transition-colors disabled:opacity-60">
-                  {resending ? 'Sending...' : 'Resend verification email'}
-                </button>
-              )}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
             {/* EMAIL */}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_HOME } from '../context/AuthContext';
 import {
@@ -26,6 +27,10 @@ export default function Register() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+  const [registered, setRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
@@ -47,12 +52,27 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await registerUser({ ...data, role: selectedRole });
-      toast.success(`Welcome to EMS Kenya, ${res.user.firstName}!`);
-      navigate(ROLE_HOME[res.user.role] || '/dashboard');
+      // Show "check your email" screen instead of going to dashboard
+      setRegisteredEmail(data.email);
+      setRegistered(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setResent(false);
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/auth/resend-verification`, { email: registeredEmail });
+      setResent(true);
+      toast.success('Verification email resent! Check your inbox.');
+    } catch {
+      toast.error('Failed to resend. Please try again.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -62,6 +82,49 @@ export default function Register() {
     { icon: '🤖', text: 'AI triage support' },
     { icon: '🕐', text: '24/7 emergency response' }
   ];
+
+  // ── Show this screen after successful registration ──
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-ems-black flex items-center justify-center p-6">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-emergency-red/10 border border-emergency-red/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FiMail size={28} className="text-emergency-red" />
+          </div>
+          <h1 className="text-3xl font-display text-white tracking-tight mb-2">CHECK YOUR EMAIL</h1>
+          <p className="text-ems-muted text-sm mb-1">We sent a verification link to</p>
+          <p className="text-white font-medium text-sm mb-6">{registeredEmail}</p>
+          <p className="text-ems-muted text-xs mb-8 leading-relaxed">
+            Click the link in the email to verify your account and access the dashboard.
+            The link expires in <span className="text-white">24 hours</span>.
+          </p>
+
+          <div className="p-4 rounded-xl border border-ems-border bg-ems-dark text-left mb-6 space-y-2">
+            <p className="text-white text-xs font-medium">Didn't get the email?</p>
+            <p className="text-ems-muted text-xs">Check your spam/junk folder first.</p>
+            {resent ? (
+              <p className="text-green-400 text-xs">✅ New link sent — check your inbox.</p>
+            ) : (
+              <button
+                onClick={handleResend}
+                disabled={resending}
+                className="text-xs text-emergency-red hover:text-emergency-red/80 underline transition-colors disabled:opacity-60"
+              >
+                {resending ? 'Sending...' : 'Resend verification email'}
+              </button>
+            )}
+          </div>
+
+          <Link
+            to="/login"
+            className="text-sm text-ems-muted hover:text-white transition-colors"
+          >
+            ← Back to sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ems-black flex">
