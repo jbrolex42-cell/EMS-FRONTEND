@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   FiGrid, FiAlertTriangle, FiMapPin, FiUsers, FiTruck,
   FiHeart, FiSettings, FiLogOut, FiActivity, FiBarChart2,
-  FiShield, FiCreditCard, FiX, FiChevronsRight
+  FiShield, FiCreditCard, FiX, FiChevronsRight, FiRadio
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,7 @@ const adminLinks = [
   { to: '/admin/fleet',         icon: FiTruck,        label: 'Fleet' },
   { to: '/admin/hospitals',     icon: FiActivity,     label: 'Hospitals' },
   { to: '/admin/memberships',   icon: FiCreditCard,   label: 'Memberships' },
+  { to: '/admin/updates',       icon: FiRadio,        label: 'EMS Updates' },
   { to: '/settings',            icon: FiSettings,     label: 'Settings' },
 ];
 const emtLinks = [
