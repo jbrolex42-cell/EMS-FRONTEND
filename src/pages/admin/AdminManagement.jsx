@@ -126,7 +126,7 @@ function CreateAdminPanel({ onClose, onSuccess }) {
               <div className="relative">
                 <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-ems-muted" size={13} />
                 <input {...register('firstName', { required: 'Required' })}
-                  placeholder="Jane"
+                  placeholder=""
                   className={`ems-input pl-9 text-sm ${errors.firstName ? 'border-red-500/70' : ''}`} />
               </div>
               {errors.firstName && <p className="text-red-400 text-xs">{errors.firstName.message}</p>}
@@ -136,7 +136,7 @@ function CreateAdminPanel({ onClose, onSuccess }) {
               <div className="relative">
                 <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-ems-muted" size={13} />
                 <input {...register('lastName', { required: 'Required' })}
-                  placeholder="Doe"
+                  placeholder=""
                   className={`ems-input pl-9 text-sm ${errors.lastName ? 'border-red-500/70' : ''}`} />
               </div>
               {errors.lastName && <p className="text-red-400 text-xs">{errors.lastName.message}</p>}
@@ -152,7 +152,7 @@ function CreateAdminPanel({ onClose, onSuccess }) {
                 required: 'Email is required',
                 pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address' }
               })}
-                placeholder="jane@emskenya.co.ke"
+                placeholder=""
                 className={`ems-input pl-9 text-sm ${errors.email ? 'border-red-500/70' : ''}`} />
             </div>
             {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
@@ -167,7 +167,7 @@ function CreateAdminPanel({ onClose, onSuccess }) {
                 required: 'Phone is required',
                 pattern: { value: /^0[0-9]{9}$/, message: 'Enter a valid Kenyan number (e.g. 0712345678)' }
               })}
-                placeholder="0712345678"
+                placeholder=""
                 className={`ems-input pl-9 text-sm ${errors.phone ? 'border-red-500/70' : ''}`} />
             </div>
             {errors.phone && <p className="text-red-400 text-xs">{errors.phone.message}</p>}
