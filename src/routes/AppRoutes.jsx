@@ -13,6 +13,7 @@ import Membership from '../pages/Membership';
 import Hospitals from '../pages/Hospitals';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
+import VerifyEmail from '../pages/VerifyEmail';
 
 // Admin pages
 import AdminDashboard from '../pages/AdminDashboard';
@@ -35,6 +36,7 @@ export default function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route path="/membership" element={<Membership />} />
       <Route path="/hospitals" element={<Hospitals />} />
 
