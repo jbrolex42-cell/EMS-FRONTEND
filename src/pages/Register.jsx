@@ -346,7 +346,7 @@ export default function Register() {
               <label className="text-sm font-medium text-white block">
                 Account Type
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {[
                   {
                     value: 'patient',
@@ -359,12 +359,6 @@ export default function Register() {
                     icon: <FiActivity size={20} />,
                     label: 'EMT',
                     desc: 'Respond to emergencies'
-                  },
-                  {
-                    value: 'admin',
-                    icon: <FiShield size={20} />,
-                    label: 'Admin',
-                    desc: 'Manage the system'
                   }
                 ].map(({ value, icon, label, desc }) => (
                   <button

@@ -22,6 +22,7 @@ import AdminUsers from '../pages/admin/AdminUsers';
 import AdminFleet from '../pages/admin/AdminFleet';
 import AdminHospitals from '../pages/admin/AdminHospitals';
 import AdminMemberships from '../pages/admin/AdminMemberships';
+import AdminManagement from '../pages/admin/AdminManagement';
 
 // EMT pages
 import EMTDashboard from '../pages/EMTDashboard';
@@ -58,6 +59,7 @@ export default function AppRoutes() {
       <Route path="/admin/fleet" element={<ProtectedRoute roles={['admin','superadmin']}><AdminFleet /></ProtectedRoute>} />
       <Route path="/admin/hospitals" element={<ProtectedRoute roles={['admin','superadmin']}><AdminHospitals /></ProtectedRoute>} />
       <Route path="/admin/memberships" element={<ProtectedRoute roles={['admin','superadmin']}><AdminMemberships /></ProtectedRoute>} />
+      <Route path="/admin/manage-admins" element={<ProtectedRoute roles={['superadmin']}><AdminManagement /></ProtectedRoute>} />
 
       {/* ── 404 ─────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
