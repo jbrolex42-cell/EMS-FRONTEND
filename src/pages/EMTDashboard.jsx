@@ -5,6 +5,7 @@ import StatsCard from '../components/StatsCard';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import api from '../services/api';
+import { joinUserRoom, getSocket } from '../services/socketService';
 import { timeAgo } from '../utils/formatTime';
 import { STATUS_COLORS } from '../utils/constants';
 import {
@@ -21,7 +22,25 @@ export default function EMTDashboard() {
   const [status, setStatus] = useState(user?.status || 'available');
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+
+    // Ensure this EMT is in their socket room (handles late connect + reconnects)
+    if (user?._id) joinUserRoom(user._id);
+
+    const socket = getSocket();
+    if (socket) {
+      const onReconnect = () => {
+        if (user?._id) joinUserRoom(user._id);
+        fetchData();
+      };
+      socket.on('connect', onReconnect);
+    }
+
+    // Poll every 15s as fallback in case socket event is missed
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
+  }, [user?._id]);
 
   // Real-time: refresh when a new case is assigned
   useSocket('dispatch_assigned', () => { fetchData(); }, []);
