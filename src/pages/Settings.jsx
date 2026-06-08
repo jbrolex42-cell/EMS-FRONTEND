@@ -38,7 +38,7 @@ export default function Settings() {
 
     setAvatarUploading(true);
     try {
-      const { data: res } = await api.post('/uploads/media', formData, {
+      const { data: res } = await api.post('/uploads/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       // Save the returned URL to the user profile
