@@ -30,6 +30,10 @@ export const joinAdminRoom = () => {
   if (socket) socket.emit('join_admin');
 };
 
+export const joinUserRoom = (userId) => {
+  if (socket) socket.emit('join_user', userId);
+};
+
 export const onEmergencyUpdate = (callback) => {
   if (socket) socket.on('status_update', callback);
 };

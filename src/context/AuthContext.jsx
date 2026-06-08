@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
-import { initSocket, disconnectSocket } from '../services/socketService';
+import { initSocket, disconnectSocket, joinUserRoom } from '../services/socketService';
 
 const AuthContext = createContext(null);
 
@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await authService.getMe();
       setUser(data.user);
       initSocket();
+      joinUserRoom(data.user._id);
     } catch {
       clearAuth();
     } finally {
@@ -46,7 +47,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('ems_refresh', data.refreshToken);
     setUser(data.user);
     initSocket();
-    return data;   // ← caller uses data.user.role to navigate
+    joinUserRoom(data.user._id);
+    return data;
   };
 
   // Register
@@ -56,6 +58,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('ems_refresh', data.refreshToken);
     setUser(data.user);
     initSocket();
+    joinUserRoom(data.user._id);
     return data;
   };
 

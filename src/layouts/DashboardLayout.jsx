@@ -1,6 +1,9 @@
+// layouts/DashboardLayout.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import NotificationPanel from '../components/NotificationPanel';
+import { useNotifications } from '../hooks/useNotifications';
 import { FiBell, FiMenu, FiAlertTriangle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,22 +11,35 @@ export default function DashboardLayout({ children, title = '' }) {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    panelOpen,
+    togglePanel,
+    setPanelOpen,
+    markRead,
+    clearAll,
+    refresh,
+  } = useNotifications();
+
   return (
     <div className="min-h-screen bg-ems-black flex">
 
-      {/* ── Sidebar (desktop always-on / mobile drawer) ── */}
+      {/* ── Sidebar ─────────────────────────────────────────────── */}
       <Sidebar
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* ── Main content column ────────────────────────── */}
+      {/* ── Main column ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ── Top header bar ─────────────────────────────── */}
-        <header className="h-14 md:h-16 bg-ems-dark border-b border-ems-border flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-3">
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <header className="h-14 md:h-16 bg-ems-dark border-b border-ems-border
+                           flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-3">
 
-          {/* Hamburger — mobile only */}
+          {/* Hamburger – mobile only */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl
@@ -42,7 +58,7 @@ export default function DashboardLayout({ children, title = '' }) {
           {/* Right actions */}
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
 
-            {/* SOS quick button — patients mobile */}
+            {/* SOS quick button – patients on mobile */}
             {user?.role === 'patient' && (
               <Link
                 to="/emergency"
@@ -55,18 +71,49 @@ export default function DashboardLayout({ children, title = '' }) {
               </Link>
             )}
 
-            {/* Notification bell */}
-            <button
-              className="relative w-9 h-9 bg-ems-card border border-ems-border
-                         rounded-xl flex items-center justify-center
-                         text-ems-muted hover:text-white transition-colors"
-              aria-label="Notifications"
-            >
-              <FiBell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emergency-red rounded-full" />
-            </button>
+            {/* ── Notification bell (now functional) ───────────── */}
+            <div className="relative">
+              <button
+                onClick={togglePanel}
+                className={`relative w-9 h-9 border rounded-xl flex items-center justify-center
+                            transition-colors
+                            ${panelOpen
+                              ? 'bg-emergency-red/10 border-emergency-red/40 text-emergency-red'
+                              : 'bg-ems-card border-ems-border text-ems-muted hover:text-white'
+                            }`}
+                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+              >
+                <FiBell size={16} />
 
-            {/* User info — hidden on very small screens */}
+                {/* Unread badge */}
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5
+                               bg-emergency-red text-white text-[9px] font-bold
+                               rounded-full flex items-center justify-center
+                               border border-ems-dark animate-pulse"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Panel dropdown */}
+              {panelOpen && (
+                <NotificationPanel
+                  notifications={notifications}
+                  loading={loading}
+                  unreadCount={unreadCount}
+                  userRole={user?.role}
+                  onClose={() => setPanelOpen(false)}
+                  onMarkRead={markRead}
+                  onClearAll={clearAll}
+                  onRefresh={refresh}
+                />
+              )}
+            </div>
+
+            {/* User info – hidden on very small screens */}
             <div className="hidden sm:block text-right">
               <p className="text-ems-white text-sm font-medium leading-tight">
                 {user?.firstName} {user?.lastName}
@@ -77,7 +124,7 @@ export default function DashboardLayout({ children, title = '' }) {
           </div>
         </header>
 
-        {/* ── Page content ─────────────────────────────── */}
+        {/* ── Page content ────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
