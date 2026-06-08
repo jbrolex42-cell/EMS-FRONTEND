@@ -202,7 +202,7 @@ export default function EMTDashboard() {
               {[
                 { label: 'Badge #',       value: user?.badgeNumber    || 'Not set'      },
                 { label: 'Station',       value: user?.station        || 'Not assigned' },
-                { label: 'Ambulance',     value: user?.ambulanceUnit  || 'Not assigned' },
+                { label: 'Ambulance',     value: user?.ambulance  || 'Not assigned' },
                 { label: 'Certification', value: user?.certification  || 'Not set'      },
               ].map(({ label, value }) => (
                 <div key={label}

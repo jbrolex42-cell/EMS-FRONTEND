@@ -13,7 +13,7 @@ const tabs = ['Profile', 'Medical Info', 'Emergency Contacts', 'Security'];
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('Profile');
   const [saving, setSaving] = useState(false);
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
 
   // Avatar upload state
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -42,8 +42,8 @@ export default function Settings() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       // Save the returned URL to the user profile
-      const { data: profileRes } = await api.put('/users/profile', { avatarUrl: res.url });
-      updateUser(profileRes.user);
+      await api.put('/users/profile', { avatarUrl: res.url });
+      await refreshUser();
       toast.success('Profile photo updated');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to upload photo');
@@ -68,8 +68,8 @@ export default function Settings() {
     try {
       const updated = [...contacts, newContact];
       const { data: res } = await api.put('/users/profile', { emergencyContacts: updated });
-      updateUser(res.user);
-      setContacts(res.user.emergencyContacts || updated);
+      await refreshUser();
+      setContacts(updated);
       setNewContact({ name: '', phone: '', relationship: '' });
       setShowAddContact(false);
       toast.success('Contact added');
@@ -84,8 +84,8 @@ export default function Settings() {
     try {
       const updated = contacts.filter((_, i) => i !== index);
       const { data: res } = await api.put('/users/profile', { emergencyContacts: updated });
-      updateUser(res.user);
-      setContacts(res.user.emergencyContacts || updated);
+      await refreshUser();
+      setContacts(updated);
       toast.success('Contact removed');
     } catch {
       toast.error('Failed to remove contact');
@@ -102,10 +102,6 @@ export default function Settings() {
       shaNumber: user?.shaNumber,
       idNumber: user?.idNumber,
       bloodGroup: user?.bloodGroup,
-      badgeNumber: user?.badgeNumber,
-      station: user?.station,
-      ambulance: user?.ambulance,
-      certification: user?.certification,
     }
   });
 
@@ -115,8 +111,8 @@ export default function Settings() {
   const onProfileSave = async (data) => {
     setSaving(true);
     try {
-      const { data: res } = await api.put('/users/profile', data);
-      updateUser(res.user);
+      await api.put('/users/profile', data);
+      await refreshUser();
       toast.success('Profile updated successfully');
     } catch { toast.error('Failed to save profile'); }
     finally { setSaving(false); }
@@ -226,33 +222,6 @@ export default function Settings() {
                 <select {...register('address.county')} className="ems-input">
                   <option value="">Select county</option>
                   {KENYAN_COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="ems-card">
-            <h3 className="text-ems-white font-semibold mb-6 flex items-center gap-2"><FiActivity size={16} className="text-emergency-red" /> My Unit</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-ems-light text-sm mb-2 block">Badge #</label>
-                <input {...register('badgeNumber')} className="ems-input" placeholder="e.g. EMT-1042" />
-              </div>
-              <div>
-                <label className="text-ems-light text-sm mb-2 block">Station</label>
-                <input {...register('station')} className="ems-input" placeholder="e.g. Station 5" />
-              </div>
-              <div>
-                <label className="text-ems-light text-sm mb-2 block">Ambulance</label>
-                <input {...register('ambulance')} className="ems-input" placeholder="e.g. Ambulance 12" />
-              </div>
-              <div>
-                <label className="text-ems-light text-sm mb-2 block">Certification</label>
-                <select {...register('certification')} className="ems-input">
-                  <option value="">Select certification</option>
-                  {['EMT-Basic', 'EMT-Intermediate', 'Advanced EMT', 'Paramedic', 'Critical Care Paramedic'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
                 </select>
               </div>
             </div>

@@ -74,6 +74,8 @@ export const AuthProvider = ({ children }) => {
     disconnectSocket();
   };
 
+  const refreshUser = () => fetchMe();
+
   const updateUser = (updates) =>
     setUser(prev => ({ ...prev, ...updates }));
 
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }) => {
       register,
       logout,
       updateUser,
+      refreshUser,
       isAuthenticated: !!user,
       // token still accessible from localStorage directly by api.js interceptor
     }}>
