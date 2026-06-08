@@ -142,7 +142,7 @@ export default function Login() {
                   key={loginMode} // remount input on mode switch to clear value
                   type={loginMode === 'phone' ? 'tel' : 'email'}
                   autoComplete={loginMode === 'phone' ? 'tel' : 'email'}
-                  placeholder=
+                  placeholder=""
                   {...register('identifier', loginMode === 'phone'
                     ? {
                         required: 'Phone number is required',
