@@ -7,20 +7,31 @@ import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiPhone } from 'react-ic
 import Loader from '../components/Loader';
 
 export default function Login() {
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [loginMode, setLoginMode] = useState('email'); // 'email' | 'phone'
 
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const from      = location.state?.from?.pathname || '/dashboard';
 
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+
+  const switchMode = (mode) => {
+    setLoginMode(mode);
+    reset();
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const res = await login(data);
+      // Send either { email, password } or { phone, password } depending on mode
+      const payload = loginMode === 'phone'
+        ? { phone: data.identifier, password: data.password }
+        : { email: data.identifier, password: data.password };
+
+      const res = await login(payload);
       toast.success(`Welcome back, ${res.user.firstName}!`);
       const redirectMap = { admin: '/admin', superadmin: '/admin', emt: '/emt' };
       navigate(redirectMap[res.user.role] || from, { replace: true });
@@ -87,19 +98,65 @@ export default function Login() {
           </div>
 
           <h1 className="text-3xl font-display text-white tracking-tight mb-1">WELCOME BACK</h1>
-          <p className="text-ems-muted text-sm mb-8">Sign in to your account to continue</p>
+          <p className="text-ems-muted text-sm mb-6">Sign in to your account to continue</p>
+
+          {/* ── Login mode toggle ── */}
+          <div className="flex gap-1 bg-ems-dark border border-ems-border rounded-xl p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => switchMode('email')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                loginMode === 'email'
+                  ? 'bg-emergency-red text-white shadow-sm'
+                  : 'text-ems-muted hover:text-white'
+              }`}
+            >
+              <FiMail size={14} /> Email
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('phone')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                loginMode === 'phone'
+                  ? 'bg-emergency-red text-white shadow-sm'
+                  : 'text-ems-muted hover:text-white'
+              }`}
+            >
+              <FiPhone size={14} /> Phone
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            {/* EMAIL */}
+
+            {/* EMAIL or PHONE field */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-white block">Email Address</label>
+              <label className="text-sm font-medium text-white block">
+                {loginMode === 'phone' ? 'Phone Number' : 'Email Address'}
+              </label>
               <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
-                <input type="email" autoComplete="email"
-                  {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email address' } })}
-                  className={`ems-input pl-11 transition-colors ${errors.email ? 'border-red-500/70 focus:border-red-500' : ''}`} />
+                {loginMode === 'phone'
+                  ? <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
+                  : <FiMail  className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
+                }
+                <input
+                  key={loginMode} // remount input on mode switch to clear value
+                  type={loginMode === 'phone' ? 'tel' : 'email'}
+                  autoComplete={loginMode === 'phone' ? 'tel' : 'email'}
+                  placeholder={loginMode === 'phone' ? '0712 345 678' : ''}
+                  {...register('identifier', loginMode === 'phone'
+                    ? {
+                        required: 'Phone number is required',
+                        pattern: { value: /^0[0-9]{9}$/, message: 'Enter a valid Kenyan number (e.g. 0712345678)' }
+                      }
+                    : {
+                        required: 'Email is required',
+                        pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email address' }
+                      }
+                  )}
+                  className={`ems-input pl-11 transition-colors ${errors.identifier ? 'border-red-500/70 focus:border-red-500' : ''}`}
+                />
               </div>
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+              {errors.identifier && <p className="text-red-400 text-xs mt-1">{errors.identifier.message}</p>}
             </div>
 
             {/* PASSWORD */}
@@ -112,7 +169,7 @@ export default function Login() {
               </div>
               <div className="relative">
                 <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
-                <input type={showPass ? 'text' : 'password'} placeholder="Your password" autoComplete="current-password"
+                <input type={showPass ? 'text' : 'password'} autoComplete="current-password"
                   {...register('password', { required: 'Password is required' })}
                   className={`ems-input pl-11 pr-11 transition-colors ${errors.password ? 'border-red-500/70 focus:border-red-500' : ''}`} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
