@@ -102,6 +102,10 @@ export default function Settings() {
       shaNumber: user?.shaNumber,
       idNumber: user?.idNumber,
       bloodGroup: user?.bloodGroup,
+      badgeNumber: user?.badgeNumber,
+      station: user?.station,
+      ambulance: user?.ambulance,
+      certification: user?.certification,
     }
   });
 
@@ -222,6 +226,33 @@ export default function Settings() {
                 <select {...register('address.county')} className="ems-input">
                   <option value="">Select county</option>
                   {KENYAN_COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="ems-card">
+            <h3 className="text-ems-white font-semibold mb-6 flex items-center gap-2"><FiActivity size={16} className="text-emergency-red" /> My Unit</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-ems-light text-sm mb-2 block">Badge #</label>
+                <input {...register('badgeNumber')} className="ems-input" placeholder="e.g. EMT-1042" />
+              </div>
+              <div>
+                <label className="text-ems-light text-sm mb-2 block">Station</label>
+                <input {...register('station')} className="ems-input" placeholder="e.g. Station 5" />
+              </div>
+              <div>
+                <label className="text-ems-light text-sm mb-2 block">Ambulance</label>
+                <input {...register('ambulance')} className="ems-input" placeholder="e.g. Ambulance 12" />
+              </div>
+              <div>
+                <label className="text-ems-light text-sm mb-2 block">Certification</label>
+                <select {...register('certification')} className="ems-input">
+                  <option value="">Select certification</option>
+                  {['EMT-Basic', 'EMT-Intermediate', 'Advanced EMT', 'Paramedic', 'Critical Care Paramedic'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
               </div>
             </div>
