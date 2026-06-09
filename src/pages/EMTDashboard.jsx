@@ -13,6 +13,7 @@ import {
   FiMapPin, FiPhone, FiArrowRight, FiRefreshCw, FiUser, FiTruck
 } from 'react-icons/fi';
 import Loader from '../components/Loader';
+import EMTTracker from '../components/EMT/EMTTracker';
 
 export default function EMTDashboard() {
   const { user } = useAuth();
@@ -232,6 +233,9 @@ export default function EMTDashboard() {
               ))}
             </div>
           </div>
+
+          {/* GPS Tracker */}
+          <EMTTracker ambulanceId={user?.ambulanceId} />
 
           {/* Dispatch hotline */}
           <div className="p-4 bg-emergency-red/5 border border-emergency-red/20 rounded-2xl text-center">
