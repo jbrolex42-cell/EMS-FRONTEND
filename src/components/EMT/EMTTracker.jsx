@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import useGPSTracking from "../../hooks/useGPSTracking";
 import { FiMapPin, FiWifi, FiWifiOff, FiAlertCircle } from 'react-icons/fi';
-import api from '../services/api';
+import api from "../../services/api";
 
 /**
  * EMTTracker
