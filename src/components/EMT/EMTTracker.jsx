@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGPSTracking } from '../hooks/useGPSTracking';
+import useGPSTracking from "../../hooks/useGPSTracking";
 import { FiMapPin, FiWifi, FiWifiOff, FiAlertCircle } from 'react-icons/fi';
 import api from '../services/api';
 
