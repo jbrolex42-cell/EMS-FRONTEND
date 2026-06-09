@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import api from '../../services/api';
 import { useSocket } from '../../hooks/useSocket';
@@ -16,7 +16,27 @@ const STATUS_COLORS = {
 };
 
 const AMBULANCE_TYPES = ['basic', 'advanced', 'neonatal', 'bariatric', 'air'];
-const EQUIPMENT_OPTIONS = ['Defibrillator', 'Oxygen', 'Stretcher', 'IV Kit', 'Splints', 'Burn Kit', 'Suction Unit', 'Pulse Oximeter'];
+const EQUIPMENT_OPTIONS = [
+  // Airway & Breathing
+  'Defibrillator', 'AED', 'Oxygen Cylinder', 'Bag-Valve Mask (BVM)',
+  'Suction Unit', 'Pulse Oximeter', 'Capnography Monitor',
+  'Nebulizer', 'Laryngoscope', 'Endotracheal Tubes', 'Supraglottic Airway',
+  // Circulation & Monitoring
+  'IV Kit', 'IV Fluids', 'Blood Pressure Cuff', 'ECG Monitor',
+  'Cardiac Monitor', 'Glucometer', 'Thermometer', 'Tourniquet',
+  // Trauma & Immobilization
+  'Stretcher', 'Scoop Stretcher', 'Spinal Board', 'Cervical Collar',
+  'Splints', 'Traction Splint', 'Pelvic Binder', 'Burn Kit',
+  'Wound Dressing Kit', 'Hemostatic Gauze', 'Chest Seal',
+  // Medication
+  'Epinephrine (EpiPen)', 'Aspirin', 'Nitroglycerin', 'Naloxone (Narcan)',
+  'Glucose Gel', 'Normal Saline', 'Morphine', 'Diazepam',
+  // Obstetric & Neonatal
+  'Delivery Kit', 'Neonatal Resuscitator', 'Cord Clamp',
+  // General
+  'First Aid Kit', 'PPE Kit', 'Blankets', 'Communication Radio',
+  'Torch / Flashlight', 'Safety Vest',
+];
 const KENYA_COUNTIES = [
   'Nairobi','Mombasa','Kisumu','Nakuru','Eldoret','Thika','Malindi','Kitale',
   'Garissa','Kakamega','Nyeri','Meru','Machakos','Kisii','Kilifi','Lamu',
@@ -28,109 +48,115 @@ const KENYA_COUNTIES = [
   'Kwale','Makueni','Kitui'
 ];
 
-// ── Google Maps loader ───────────────────────────────────────────────────────
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+// ── Leaflet CSS (injected once) ───────────────────────────────────────────────
+function ensureLeafletCSS() {
+  if (document.getElementById('leaflet-css')) return;
+  const link = document.createElement('link');
+  link.id   = 'leaflet-css';
+  link.rel  = 'stylesheet';
+  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(link);
+}
 
-function loadGoogleMaps() {
-  return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps) return resolve(window.google.maps);
-    if (document.getElementById('gmap-script')) {
+// ── Leaflet loader ────────────────────────────────────────────────────────────
+function loadLeaflet() {
+  return new Promise((resolve) => {
+    if (window.L) return resolve(window.L);
+    if (document.getElementById('leaflet-js')) {
       const check = setInterval(() => {
-        if (window.google && window.google.maps) { clearInterval(check); resolve(window.google.maps); }
+        if (window.L) { clearInterval(check); resolve(window.L); }
       }, 100);
       return;
     }
+    ensureLeafletCSS();
     const script = document.createElement('script');
-    script.id = 'gmap-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
-    script.async = true;
-    script.onload = () => resolve(window.google.maps);
-    script.onerror = reject;
+    script.id  = 'leaflet-js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => resolve(window.L);
     document.head.appendChild(script);
   });
 }
 
-// ── Status badge dot marker for Google Maps ──────────────────────────────────
-function makeMarkerIcon(color) {
+// ── SVG pin icon for each ambulance ──────────────────────────────────────────
+function makeDivIcon(L, color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
     <circle cx="18" cy="18" r="14" fill="${color}" opacity="0.25"/>
-    <circle cx="18" cy="18" r="9" fill="${color}"/>
-    <text x="18" y="22" text-anchor="middle" font-size="12" fill="white">🚑</text>
+    <circle cx="18" cy="18" r="9"  fill="${color}"/>
+    <text x="18" y="23" text-anchor="middle" font-size="13">🚑</text>
   </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18],
+  });
 }
 
-// ── Live Map component ────────────────────────────────────────────────────────
+// ── Live Map component (OpenStreetMap + Leaflet — no API key needed) ──────────
 function FleetMap({ ambulances }) {
-  const mapRef = useRef(null);
-  const googleMapRef = useRef(null);
+  const mapRef     = useRef(null);
+  const leafletMap = useRef(null);
   const markersRef = useRef({});
 
-  const initMap = useCallback(async () => {
-    try {
-      const maps = await loadGoogleMaps();
-      if (!mapRef.current) return;
-      googleMapRef.current = new maps.Map(mapRef.current, {
-        center: { lat: 1.2921, lng: 36.8219 }, // Kenya center
+  // Init map once
+  useEffect(() => {
+    let cancelled = false;
+    loadLeaflet().then((L) => {
+      if (cancelled || !mapRef.current || leafletMap.current) return;
+      leafletMap.current = L.map(mapRef.current, {
+        center: [1.2921, 36.8219], // Kenya center
         zoom: 6,
-        mapTypeId: 'roadmap',
-        styles: [
-          { elementType: 'geometry', stylers: [{ color: '#1a1f2e' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#8a9bb0' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1f2e' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2d3748' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
-          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        ],
+        zoomControl: true,
       });
-    } catch (e) {
-      console.error('Google Maps failed to load:', e);
-    }
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(leafletMap.current);
+    });
+    return () => {
+      cancelled = true;
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+        markersRef.current = {};
+      }
+    };
   }, []);
 
-  useEffect(() => { initMap(); }, [initMap]);
-
-  // Update markers when ambulances change
+  // Update / add / remove markers whenever ambulances change
   useEffect(() => {
-    if (!googleMapRef.current || !window.google) return;
-    const maps = window.google.maps;
+    if (!leafletMap.current || !window.L) return;
+    const L = window.L;
 
     ambulances.forEach(a => {
       const coords = a.location?.coordinates;
       if (!coords || (coords[0] === 0 && coords[1] === 0)) return;
-      const position = { lat: coords[1], lng: coords[0] };
-      const color = STATUS_COLORS[a.status] || '#fff';
+      const latlng = [coords[1], coords[0]]; // GeoJSON is [lng, lat]
+      const color  = STATUS_COLORS[a.status] || '#fff';
+      const icon   = makeDivIcon(L, color);
+      const popup  = `
+        <div style="font-family:sans-serif;min-width:175px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">🚑 ${a.registrationNumber}</div>
+          <div style="color:${color};font-size:12px;text-transform:capitalize;margin-bottom:2px">${a.status}</div>
+          <div style="color:#6b7280;font-size:11px">${a.type} · ${a.county}</div>
+          ${a.emt ? `<div style="color:#6b7280;font-size:11px;margin-top:4px">EMT: ${a.emt.firstName} ${a.emt.lastName}</div>` : ''}
+          ${a.lastPing ? `<div style="color:#9ca3af;font-size:10px;margin-top:4px">Last ping: ${new Date(a.lastPing).toLocaleTimeString()}</div>` : ''}
+        </div>`;
 
       if (markersRef.current[a._id]) {
-        markersRef.current[a._id].setPosition(position);
-        markersRef.current[a._id].setIcon({ url: makeMarkerIcon(color), scaledSize: new maps.Size(36, 36) });
+        markersRef.current[a._id].setLatLng(latlng).setIcon(icon).setPopupContent(popup);
       } else {
-        const marker = new maps.Marker({
-          position,
-          map: googleMapRef.current,
-          icon: { url: makeMarkerIcon(color), scaledSize: new maps.Size(36, 36) },
-          title: a.registrationNumber,
-        });
-        const infoWindow = new maps.InfoWindow({
-          content: `
-            <div style="background:#1a1f2e;color:#fff;padding:10px;border-radius:8px;min-width:180px;font-family:sans-serif">
-              <div style="font-weight:bold;font-size:14px">🚑 ${a.registrationNumber}</div>
-              <div style="color:${color};font-size:12px;margin:4px 0;text-transform:capitalize">${a.status}</div>
-              <div style="color:#8a9bb0;font-size:11px">${a.type} · ${a.county}</div>
-              ${a.emt ? `<div style="color:#8a9bb0;font-size:11px;margin-top:4px">EMT: ${a.emt.firstName} ${a.emt.lastName}</div>` : ''}
-              ${a.lastPing ? `<div style="color:#555;font-size:10px;margin-top:4px">Last ping: ${new Date(a.lastPing).toLocaleTimeString()}</div>` : ''}
-            </div>
-          `
-        });
-        marker.addListener('click', () => infoWindow.open(googleMapRef.current, marker));
-        markersRef.current[a._id] = marker;
+        markersRef.current[a._id] = L.marker(latlng, { icon })
+          .bindPopup(popup)
+          .addTo(leafletMap.current);
       }
     });
 
-    // Remove markers for deleted ambulances
+    // Remove stale markers
     Object.keys(markersRef.current).forEach(id => {
       if (!ambulances.find(a => a._id === id)) {
-        markersRef.current[id].setMap(null);
+        markersRef.current[id].remove();
         delete markersRef.current[id];
       }
     });
@@ -150,13 +176,7 @@ function FleetMap({ ambulances }) {
           ))}
         </div>
       </div>
-      {!GOOGLE_MAPS_API_KEY ? (
-        <div className="flex items-center justify-center h-64 bg-ems-dark rounded-xl text-ems-muted text-sm">
-          Add <code className="mx-1 text-emergency-red">VITE_GOOGLE_MAPS_API_KEY</code> to your .env to enable the map
-        </div>
-      ) : (
-        <div ref={mapRef} className="w-full rounded-xl overflow-hidden" style={{ height: '420px' }} />
-      )}
+      <div ref={mapRef} className="w-full rounded-xl overflow-hidden" style={{ height: '420px' }} />
     </div>
   );
 }
