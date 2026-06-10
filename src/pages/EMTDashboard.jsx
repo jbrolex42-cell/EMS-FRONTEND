@@ -8,9 +8,10 @@ import api from '../services/api';
 import { joinUserRoom, getSocket } from '../services/socketService';
 import { timeAgo } from '../utils/formatTime';
 import { STATUS_COLORS } from '../utils/constants';
+import { HOSPITALS_DATA, LEVEL_LABEL } from '../data/hospitalsData';
 import {
   FiAlertTriangle, FiCheckCircle, FiClock, FiActivity,
-  FiMapPin, FiPhone, FiArrowRight, FiRefreshCw, FiUser, FiTruck
+  FiMapPin, FiPhone, FiArrowRight, FiRefreshCw, FiUser, FiSearch
 } from 'react-icons/fi';
 import Loader from '../components/Loader';
 import EMTTracker from '../components/EMT/EMTTracker';
@@ -18,39 +19,42 @@ import EMTTracker from '../components/EMT/EMTTracker';
 export default function EMTDashboard() {
   const { user } = useAuth();
   const [assignedCases, setAssignedCases] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState(user?.status || 'available');
+  const [stats, setStats]                 = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [status, setStatus]               = useState(user?.status || 'available');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Hospital quick-find state
+  const [hospitalSearch, setHospitalSearch] = useState('');
+  const [hospitalCounty, setHospitalCounty] = useState(user?.county || '');
+
+  const nearbyHospitals = HOSPITALS_DATA.filter(h => {
+    const matchCounty = !hospitalCounty || h.county === hospitalCounty;
+    const matchSearch = !hospitalSearch || h.name.toLowerCase().includes(hospitalSearch.toLowerCase());
+    const hasEmergency = h.capabilities?.emergency;
+    return matchCounty && matchSearch && hasEmergency;
+  }).slice(0, 6);
 
   useEffect(() => {
     fetchData();
-
-    // Ensure this EMT is in their socket room (handles late connect + reconnects)
     if (user?._id) joinUserRoom(user._id);
 
     const socket = getSocket();
     if (socket) {
-      const onReconnect = () => {
-        if (user?._id) joinUserRoom(user._id);
-        fetchData();
-      };
+      const onReconnect = () => { if (user?._id) joinUserRoom(user._id); fetchData(); };
       socket.on('connect', onReconnect);
     }
-
-    // Poll every 15s as fallback in case socket event is missed
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [user?._id]);
 
-  // Real-time: refresh when a new case is assigned
   useSocket('dispatch_assigned', () => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       const [casesRes, statsRes] = await Promise.all([
         api.get('/emt/cases?limit=6'),
-        api.get('/emt/stats')
+        api.get('/emt/stats'),
       ]);
       setAssignedCases(casesRes.data.cases || []);
       setStats(statsRes.data);
@@ -74,9 +78,9 @@ export default function EMTDashboard() {
   };
 
   const statusConfig = {
-    available:   { label: 'Available',   color: '#22C55E', bg: 'border-green-500/40 bg-green-500/10'  },
-    on_call:     { label: 'On Call',     color: '#F59E0B', bg: 'border-yellow-500/40 bg-yellow-500/10'},
-    unavailable: { label: 'Unavailable', color: '#6B7280', bg: 'border-gray-500/40 bg-gray-500/10'   },
+    available:   { label: 'Available',   color: '#22C55E', bg: 'border-green-500/40 bg-green-500/10'   },
+    on_call:     { label: 'On Call',     color: '#F59E0B', bg: 'border-yellow-500/40 bg-yellow-500/10' },
+    unavailable: { label: 'Unavailable', color: '#6B7280', bg: 'border-gray-500/40 bg-gray-500/10'    },
   };
 
   return (
@@ -93,7 +97,6 @@ export default function EMTDashboard() {
             EMT · Badge #{user?.badgeNumber || 'N/A'} · {user?.station || 'Unassigned station'}
           </p>
         </div>
-
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusConfig).map(([key, cfg]) => (
             <button
@@ -127,62 +130,117 @@ export default function EMTDashboard() {
       <div className="grid lg:grid-cols-3 gap-5">
 
         {/* Assigned cases */}
-        <div className="lg:col-span-2 ems-card">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-ems-white font-semibold">Assigned Cases</h3>
-            <button onClick={fetchData} className="text-ems-muted hover:text-white transition-colors">
-              <FiRefreshCw size={14} />
-            </button>
+        <div className="lg:col-span-2 space-y-5">
+          <div className="ems-card">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-ems-white font-semibold">Assigned Cases</h3>
+              <button onClick={fetchData} className="text-ems-muted hover:text-white transition-colors">
+                <FiRefreshCw size={14} />
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="py-10 flex justify-center"><Loader /></div>
+            ) : assignedCases.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <FiCheckCircle size={40} className="text-ems-muted mx-auto" />
+                <p className="text-ems-muted text-sm">No active cases</p>
+                <p className="text-ems-muted text-xs">You're all clear 👍</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {assignedCases.map(em => (
+                  <Link key={em._id} to="/emt/dispatch"
+                    className="flex items-center gap-4 p-3.5 bg-ems-dark rounded-xl hover:bg-ems-black transition-colors group">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-ems-black flex-shrink-0 ${
+                      em.severity === 'critical' ? 'ring-1 ring-red-500/50' : ''
+                    }`}>
+                      {em.type === 'cardiac' ? '💔' : em.type === 'trauma' ? '🩹'
+                       : em.type === 'obstetric' ? '🤱' : em.type === 'stroke' ? '🧠' : '🚑'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="text-ems-white text-sm font-medium capitalize">{em.type}</span>
+                        <span className="status-badge text-xs"
+                          style={{ background: `${STATUS_COLORS[em.status]}20`, color: STATUS_COLORS[em.status] }}>
+                          {em.status?.replace(/_/g, ' ')}
+                        </span>
+                        {em.severity === 'critical' && (
+                          <span className="status-badge text-xs bg-red-500/20 text-red-400">CRITICAL</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-ems-muted flex-wrap">
+                        <span className="flex items-center gap-1"><FiUser size={10} /> {em.patient?.firstName} {em.patient?.lastName}</span>
+                        <span className="flex items-center gap-1"><FiMapPin size={10} /> {em.patientLocation?.county || 'Unknown'}</span>
+                        <span className="flex items-center gap-1"><FiClock size={10} /> {timeAgo(em.createdAt)}</span>
+                      </div>
+                    </div>
+                    <FiArrowRight size={14} className="text-ems-muted group-hover:text-emergency-red transition-colors flex-shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <div className="py-10 flex justify-center"><Loader /></div>
-          ) : assignedCases.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <FiCheckCircle size={40} className="text-ems-muted mx-auto" />
-              <p className="text-ems-muted text-sm">No active cases</p>
-              <p className="text-ems-muted text-xs">You're all clear 👍</p>
+          {/* Nearby / Emergency Hospitals panel */}
+          <div className="ems-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-ems-white font-semibold">Receiving Hospitals</h3>
+              <span className="text-xs text-ems-muted">Emergency-capable</span>
             </div>
-          ) : (
+
+            {/* Search + county filter */}
+            <div className="flex gap-2 mb-4">
+              <div className="relative flex-1">
+                <FiSearch size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-ems-muted" />
+                <input
+                  value={hospitalSearch}
+                  onChange={e => setHospitalSearch(e.target.value)}
+                  placeholder="Search hospital..."
+                  className="ems-input text-xs pl-8 py-2"
+                />
+              </div>
+              <input
+                value={hospitalCounty}
+                onChange={e => setHospitalCounty(e.target.value)}
+                placeholder="County..."
+                className="ems-input text-xs py-2 w-32"
+              />
+            </div>
+
             <div className="space-y-2">
-              {assignedCases.map(em => (
-                <Link key={em._id} to={`/emt/dispatch`}
-                  className="flex items-center gap-4 p-3.5 bg-ems-dark rounded-xl hover:bg-ems-black transition-colors group">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-ems-black flex-shrink-0 ${
-                    em.severity === 'critical' ? 'ring-1 ring-red-500/50' : ''
-                  }`}>
-                    {em.type === 'cardiac' ? '💔' : em.type === 'trauma' ? '🩹'
-                     : em.type === 'obstetric' ? '🤱' : em.type === 'stroke' ? '🧠' : '🚑'}
-                  </div>
+              {nearbyHospitals.length === 0 ? (
+                <p className="text-ems-muted text-xs text-center py-6">No hospitals found</p>
+              ) : nearbyHospitals.map(h => (
+                <div key={h._id}
+                  className="flex items-center justify-between gap-3 p-3 bg-ems-dark rounded-xl">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-ems-white text-sm font-medium capitalize">{em.type}</span>
-                      <span className="status-badge text-xs"
-                        style={{ background: `${STATUS_COLORS[em.status]}20`, color: STATUS_COLORS[em.status] }}>
-                        {em.status?.replace(/_/g, ' ')}
+                    <p className="text-ems-white text-xs font-medium truncate">{h.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-ems-muted text-xs flex items-center gap-1">
+                        <FiMapPin size={9} className="text-emergency-red" /> {h.county}
                       </span>
-                      {em.severity === 'critical' && (
-                        <span className="status-badge text-xs bg-red-500/20 text-red-400">CRITICAL</span>
+                      <span className="text-xs text-ems-muted bg-ems-black px-1.5 py-0.5 rounded-full">
+                        {LEVEL_LABEL[h.level]}
+                      </span>
+                      {h.capabilities?.icu && (
+                        <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">ICU</span>
+                      )}
+                      {h.shaEmpanelled && (
+                        <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">SHA</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-ems-muted flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <FiUser size={10} /> {em.patient?.firstName} {em.patient?.lastName}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FiMapPin size={10} /> {em.patientLocation?.county || 'Unknown'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FiClock size={10} /> {timeAgo(em.createdAt)}
-                      </span>
-                    </div>
                   </div>
-                  <FiArrowRight size={14}
-                    className="text-ems-muted group-hover:text-emergency-red transition-colors flex-shrink-0" />
-                </Link>
+                  {h.phone && (
+                    <a href={`tel:${h.phone}`}
+                      className="flex items-center gap-1.5 text-emergency-red text-xs hover:underline flex-shrink-0">
+                      <FiPhone size={11} /> {h.phone}
+                    </a>
+                  )}
+                </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Right column */}
@@ -193,20 +251,18 @@ export default function EMTDashboard() {
             <h3 className="text-ems-white font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-1.5">
               {[
-                { to: '/emt/dispatch', icon: '🚨', label: 'Active Dispatch',    sub: 'View current case'   },
-                { to: '/settings',     icon: '⚙️', label: 'Update Profile',     sub: 'Badge, station info' },
+                { to: '/emt/dispatch', icon: '🚨', label: 'Active Dispatch',  sub: 'View current case'   },
+                { to: '/hospitals',    icon: '🏥', label: 'All Hospitals',    sub: 'Full network'        },
+                { to: '/settings',     icon: '⚙️', label: 'Update Profile',   sub: 'Badge, station info' },
               ].map(({ to, icon, label, sub }) => (
                 <Link key={to} to={to}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-ems-dark transition-colors group">
                   <span className="text-xl w-8 flex-shrink-0">{icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-ems-white text-sm font-medium group-hover:text-emergency-red transition-colors truncate">
-                      {label}
-                    </p>
+                    <p className="text-ems-white text-sm font-medium group-hover:text-emergency-red transition-colors truncate">{label}</p>
                     <p className="text-ems-muted text-xs">{sub}</p>
                   </div>
-                  <FiArrowRight size={14}
-                    className="text-ems-muted group-hover:text-emergency-red transition-colors flex-shrink-0" />
+                  <FiArrowRight size={14} className="text-ems-muted group-hover:text-emergency-red transition-colors flex-shrink-0" />
                 </Link>
               ))}
             </div>
@@ -222,11 +278,10 @@ export default function EMTDashboard() {
               {[
                 { label: 'Badge #',       value: user?.badgeNumber    || 'Not set'      },
                 { label: 'Station',       value: user?.station        || 'Not assigned' },
-                { label: 'Ambulance',     value: user?.ambulanceUnit || 'Not assigned' },
+                { label: 'Ambulance',     value: user?.ambulanceUnit  || 'Not assigned' },
                 { label: 'Certification', value: user?.certification  || 'Not set'      },
               ].map(({ label, value }) => (
-                <div key={label}
-                  className="flex justify-between items-start gap-2 py-2 border-b border-ems-border last:border-0">
+                <div key={label} className="flex justify-between items-start gap-2 py-2 border-b border-ems-border last:border-0">
                   <span className="text-ems-muted text-xs flex-shrink-0">{label}</span>
                   <span className="text-ems-white text-xs font-medium text-right">{value}</span>
                 </div>
@@ -240,8 +295,7 @@ export default function EMTDashboard() {
           {/* Dispatch hotline */}
           <div className="p-4 bg-emergency-red/5 border border-emergency-red/20 rounded-2xl text-center">
             <p className="text-ems-muted text-xs mb-2">Dispatch Line</p>
-            <a href="tel:0700395395"
-              className="flex items-center justify-center gap-2 text-emergency-red font-bold text-lg hover:underline">
+            <a href="tel:0700395395" className="flex items-center justify-center gap-2 text-emergency-red font-bold text-lg hover:underline">
               <FiPhone size={16} /> 0700 395 395
             </a>
           </div>

@@ -16,27 +16,71 @@ const STATUS_COLORS = {
 };
 
 const AMBULANCE_TYPES = ['basic', 'advanced', 'neonatal', 'bariatric', 'air'];
-const EQUIPMENT_OPTIONS = [
-  // Airway & Breathing
-  'Defibrillator', 'AED', 'Oxygen Cylinder', 'Bag-Valve Mask (BVM)',
-  'Suction Unit', 'Pulse Oximeter', 'Capnography Monitor',
-  'Nebulizer', 'Laryngoscope', 'Endotracheal Tubes', 'Supraglottic Airway',
-  // Circulation & Monitoring
-  'IV Kit', 'IV Fluids', 'Blood Pressure Cuff', 'ECG Monitor',
-  'Cardiac Monitor', 'Glucometer', 'Thermometer', 'Tourniquet',
-  // Trauma & Immobilization
-  'Stretcher', 'Scoop Stretcher', 'Spinal Board', 'Cervical Collar',
-  'Splints', 'Traction Splint', 'Pelvic Binder', 'Burn Kit',
-  'Wound Dressing Kit', 'Hemostatic Gauze', 'Chest Seal',
-  // Medication
-  'Epinephrine (EpiPen)', 'Aspirin', 'Nitroglycerin', 'Naloxone (Narcan)',
-  'Glucose Gel', 'Normal Saline', 'Morphine', 'Diazepam',
-  // Obstetric & Neonatal
-  'Delivery Kit', 'Neonatal Resuscitator', 'Cord Clamp',
-  // General
-  'First Aid Kit', 'PPE Kit', 'Blankets', 'Communication Radio',
-  'Torch / Flashlight', 'Safety Vest',
-];
+const EQUIPMENT_CATEGORIES = {
+  'Airway & Breathing': [
+    'Defibrillator', 'AED', 'Oxygen Cylinder (Adult)', 'Oxygen Cylinder (Pediatric)',
+    'Bag-Valve Mask (BVM) Adult', 'Bag-Valve Mask (BVM) Pediatric',
+    'Suction Unit (Manual)', 'Suction Unit (Electric)', 'Pulse Oximeter',
+    'Capnography Monitor', 'Nebulizer', 'Laryngoscope (Mac)', 'Laryngoscope (Miller)',
+    'Endotracheal Tubes (Adult)', 'Endotracheal Tubes (Pediatric)',
+    'Supraglottic Airway (LMA)', 'King LT Airway', 'Nasopharyngeal Airway',
+    'Oropharyngeal Airway', 'Oxygen Mask (Non-Rebreather)', 'Nasal Cannula',
+    'Venturi Mask', 'CPAP Device', 'Portable Ventilator',
+  ],
+  'Circulation & Monitoring': [
+    'IV Kit', 'IV Fluids (Normal Saline)', 'IV Fluids (Lactated Ringers)',
+    'Blood Pressure Cuff (Adult)', 'Blood Pressure Cuff (Pediatric)',
+    'ECG Monitor', 'Cardiac Monitor', '12-Lead ECG Machine',
+    'Glucometer', 'Thermometer (Digital)', 'Thermometer (Tympanic)',
+    'Tourniquet (CAT)', 'Tourniquet (SOFT-T Wide)',
+    'Intraosseous (IO) Device', 'Central Line Kit', 'Urinary Catheter Kit',
+    'Blood Draw Kit', 'Pulse Oximeter (Pediatric)', 'Doppler Ultrasound',
+  ],
+  'Trauma & Immobilization': [
+    'Main Stretcher', 'Scoop Stretcher', 'Folding Stretcher', 'Stair Chair',
+    'Spinal Board (Long)', 'Spinal Board (Short)', 'Vacuum Mattress',
+    'Cervical Collar (Adult)', 'Cervical Collar (Pediatric)',
+    'Splints (SAM Splint)', 'Traction Splint', 'Pelvic Binder',
+    'Burn Kit', 'Wound Dressing Kit', 'Hemostatic Gauze (QuikClot)',
+    'Chest Seal (Vented)', 'Chest Seal (Non-Vented)', 'Needle Decompression Kit',
+    'Trauma Shears', 'Emergency Blanket (Mylar)', 'Head Immobilizer',
+    'Kendrick Extrication Device (KED)', 'Bariatric Stretcher Straps',
+  ],
+  'Medication': [
+    'Epinephrine (EpiPen)', 'Epinephrine (1:1000 IV)', 'Aspirin',
+    'Nitroglycerin (Spray)', 'Nitroglycerin (Tablets)', 'Naloxone (Narcan) Intranasal',
+    'Naloxone (Narcan) IV', 'Glucose Gel', 'Dextrose 50%',
+    'Morphine', 'Fentanyl', 'Diazepam', 'Midazolam',
+    'Adenosine', 'Amiodarone', 'Atropine',
+    'Ondansetron (Zofran)', 'Diphenhydramine (Benadryl)',
+    'Methylprednisolone', 'Oxytocin', 'Magnesium Sulfate',
+    'Sodium Bicarbonate', 'Calcium Chloride', 'Activated Charcoal',
+    'Ipratropium Bromide', 'Salbutamol (Albuterol)',
+  ],
+  'Obstetric & Neonatal': [
+    'Delivery Kit', 'Neonatal Resuscitator', 'Cord Clamp',
+    'Bulb Syringe', 'Neonatal Oxygen Mask', 'Neonatal BVM',
+    'Warmer Blanket (Neonatal)', 'Apgar Timer', 'Umbilical Cord Scissors',
+    'Placenta Basin', 'Sterile Gloves (OB)', 'Neonatal IV Kit',
+  ],
+  'Diagnostics & Tools': [
+    'Stethoscope', 'Penlight', 'Tongue Depressors',
+    'Thermometer (Rectal, Pediatric)', 'Otoscope', 'Blood Glucose Test Strips',
+    'Urinalysis Strips', 'Pregnancy Test Kit', 'Pulse Oximeter (Finger Clip)',
+    'Peak Flow Meter', 'Trauma Assessment Card', 'Poison Control Reference Card',
+  ],
+  'General & Safety': [
+    'First Aid Kit', 'PPE Kit (Full)', 'Nitrile Gloves (Box)',
+    'N95 Masks', 'Face Shields', 'Gowns (Disposable)',
+    'Blankets', 'Communication Radio', 'Torch / Flashlight',
+    'Safety Vest', 'Biohazard Bags', 'Sharps Container',
+    'Hand Sanitizer', 'Disinfectant Spray', 'Stretcher Straps',
+    'Jump Bag / Go Bag', 'Clipboard & Documentation Forms',
+    'Fire Extinguisher', 'Traffic Cones / Flares',
+  ],
+};
+
+const EQUIPMENT_OPTIONS = Object.values(EQUIPMENT_CATEGORIES).flat();
 const KENYA_COUNTIES = [
   'Nairobi','Mombasa','Kisumu','Nakuru','Eldoret','Thika','Malindi','Kitale',
   'Garissa','Kakamega','Nyeri','Meru','Machakos','Kisii','Kilifi','Lamu',
@@ -181,6 +225,113 @@ function FleetMap({ ambulances }) {
   );
 }
 
+// ── Equipment Picker ──────────────────────────────────────────────────────────
+function EquipmentPicker({ selected, onToggle, onBulkToggle }) {
+  const [search, setSearch] = useState('');
+  const [openCats, setOpenCats] = useState({});
+
+  const toggleCat = (cat) => setOpenCats(o => ({ ...o, [cat]: !o[cat] }));
+
+  const filteredCats = Object.entries(EQUIPMENT_CATEGORIES).reduce((acc, [cat, items]) => {
+    const filtered = search
+      ? items.filter(i => i.toLowerCase().includes(search.toLowerCase()))
+      : items;
+    if (filtered.length) acc[cat] = filtered;
+    return acc;
+  }, {});
+
+  const totalSelected = selected.length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-ems-muted text-xs">
+          Equipment
+          {totalSelected > 0 && (
+            <span className="ml-2 bg-emergency-red/20 text-emergency-red border border-emergency-red/30 text-xs px-2 py-0.5 rounded-full">
+              {totalSelected} selected
+            </span>
+          )}
+        </label>
+        {totalSelected > 0 && (
+          <button
+            onClick={() => onBulkToggle(EQUIPMENT_OPTIONS, false)}
+            className="text-xs text-ems-muted hover:text-emergency-red transition-colors">
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* Search */}
+      <input
+        className="ems-input w-full text-sm mb-3"
+        placeholder="Search equipment..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+
+      {/* Categories */}
+      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+        {Object.entries(filteredCats).map(([cat, items]) => {
+          const catSelected = items.filter(i => selected.includes(i));
+          const allChecked = catSelected.length === items.length;
+          const someChecked = catSelected.length > 0 && !allChecked;
+          const isOpen = search ? true : !!openCats[cat];
+
+          return (
+            <div key={cat} className="border border-ems-border rounded-xl overflow-hidden">
+              {/* Category header */}
+              <div className="flex items-center justify-between px-3 py-2 bg-ems-dark cursor-pointer select-none"
+                onClick={() => !search && toggleCat(cat)}>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={e => { e.stopPropagation(); onBulkToggle(items, !allChecked); }}
+                    className={`w-4 h-4 rounded border flex items-center justify-center text-xs transition-colors ${
+                      allChecked
+                        ? 'bg-emergency-red border-emergency-red text-white'
+                        : someChecked
+                        ? 'bg-emergency-red/30 border-emergency-red text-emergency-red'
+                        : 'border-ems-border'
+                    }`}>
+                    {allChecked ? '✓' : someChecked ? '–' : ''}
+                  </button>
+                  <span className="text-ems-white text-xs font-medium">{cat}</span>
+                  {catSelected.length > 0 && (
+                    <span className="text-emergency-red text-xs">({catSelected.length}/{items.length})</span>
+                  )}
+                </div>
+                {!search && (
+                  <span className="text-ems-muted text-xs">{isOpen ? '▲' : '▼'}</span>
+                )}
+              </div>
+
+              {/* Items */}
+              {isOpen && (
+                <div className="p-3 flex flex-wrap gap-2 bg-ems-surface">
+                  {items.map(item => (
+                    <button key={item}
+                      onClick={() => onToggle(item)}
+                      className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${
+                        selected.includes(item)
+                          ? 'bg-emergency-red/20 border-emergency-red text-emergency-red'
+                          : 'border-ems-border text-ems-muted hover:text-white hover:border-ems-muted'
+                      }`}>
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {Object.keys(filteredCats).length === 0 && (
+          <p className="text-ems-muted text-xs text-center py-4">No equipment matches "{search}"</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Add Ambulance Modal ───────────────────────────────────────────────────────
 function AddAmbulanceModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
@@ -232,7 +383,7 @@ function AddAmbulanceModal({ onClose, onCreated }) {
       onCreated(res.data.ambulance);
       onClose();
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to create ambulance');
+      setError(e.response?.data?.message || 'Failed to save ambulance. Please try again.');
     } finally { setSaving(false); }
   };
 
@@ -345,22 +496,13 @@ function AddAmbulanceModal({ onClose, onCreated }) {
           </div>
 
           {/* Equipment */}
-          <div>
-            <label className="block text-ems-muted text-xs mb-2">Equipment</label>
-            <div className="flex flex-wrap gap-2">
-              {EQUIPMENT_OPTIONS.map(item => (
-                <button key={item}
-                  onClick={() => toggleEquipment(item)}
-                  className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                    form.equipment.includes(item)
-                      ? 'bg-emergency-red/20 border-emergency-red text-emergency-red'
-                      : 'border-ems-border text-ems-muted hover:text-white'
-                  }`}>
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
+          <EquipmentPicker selected={form.equipment} onToggle={toggleEquipment}
+            onBulkToggle={(items, add) => setForm(f => ({
+              ...f,
+              equipment: add
+                ? [...new Set([...f.equipment, ...items])]
+                : f.equipment.filter(e => !items.includes(e))
+            }))} />
 
           {/* Notes */}
           <div>
@@ -372,13 +514,20 @@ function AddAmbulanceModal({ onClose, onCreated }) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 pt-0 flex gap-3 justify-end">
-          <button onClick={onClose} className="btn-ghost px-6 py-2.5 text-sm">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving}
-            className="btn-emergency px-6 py-2.5 text-sm flex items-center gap-2">
-            {saving ? <Loader size="sm" /> : <FiPlus size={14} />}
-            {saving ? 'Creating...' : 'Add Ambulance'}
-          </button>
+        <div className="p-6 pt-0 flex items-center gap-3 justify-between">
+          <span className="text-ems-muted text-xs">
+            {form.equipment.length > 0
+              ? `${form.equipment.length} equipment item${form.equipment.length !== 1 ? 's' : ''} selected`
+              : 'No equipment selected'}
+          </span>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="btn-ghost px-6 py-2.5 text-sm">Cancel</button>
+            <button onClick={handleSubmit} disabled={saving}
+              className="btn-emergency px-6 py-2.5 text-sm flex items-center gap-2">
+              {saving ? <Loader size="sm" /> : <FiPlus size={14} />}
+              {saving ? 'Saving...' : 'Save Ambulance'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
