@@ -24,13 +24,15 @@ function Lightbox({ post, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" onClick={onClose}>
-      <div className="relative w-full max-w-3xl bg-ems-dark border border-ems-border rounded-2xl overflow-hidden shadow-2xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto" onClick={onClose}>
+      <div className="relative w-full max-w-3xl my-8 bg-ems-dark border border-ems-border rounded-2xl overflow-y-auto max-h-[90vh] shadow-2xl"
         onClick={e => e.stopPropagation()}>
-        <button onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-colors">
-          <FiX size={15} />
-        </button>
+        <div className="sticky top-0 z-10 h-0 flex justify-end overflow-visible">
+          <button onClick={onClose}
+            className="mt-4 mr-4 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors">
+            <FiX size={15} />
+          </button>
+        </div>
 
         {/* Media */}
         {post.type === 'video' && post.mediaUrl ? (
