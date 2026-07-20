@@ -182,7 +182,6 @@ function FleetMap({ ambulances }) {
             </span>
           ))}
         </div>
-      </div>
       {!mapReady && (
         <div className="flex items-center justify-center h-96 bg-ems-dark rounded-xl">
           <Loader />
