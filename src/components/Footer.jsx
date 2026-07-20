@@ -98,8 +98,13 @@ export default function Footer() {
         <div className="border-t border-ems-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-ems-muted text-sm">© 2026 EMS Kenya. Developed by ROLEX.</p>
           <div className="flex gap-6">
-            {['Privacy Policy', 'Terms of Service', 'KMPDC Compliance', 'SHA Integration'].map(l => (
-              <Link key={l} to="#" className="text-ems-muted hover:text-white text-xs transition-colors">{l}</Link>
+            {[
+              { label: 'Privacy Policy', to: '/privacy-policy' },
+              { label: 'Terms of Service', to: '/terms-of-service' },
+              { label: 'KMPDC Compliance', to: '/kmpdc-compliance' },
+              { label: 'SHA Integration', to: '/sha-integration' },
+            ].map(({ label, to }) => (
+              <Link key={label} to={to} className="text-ems-muted hover:text-white text-xs transition-colors">{label}</Link>
             ))}
           </div>
         </div>

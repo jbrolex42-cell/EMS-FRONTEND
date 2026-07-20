@@ -25,6 +25,10 @@ import AdminMemberships from '../pages/admin/AdminMemberships';
 import AdminManagement from '../pages/admin/AdminManagement';
 import AdminUpdates from '../pages/admin/AdminUpdates';
 import EMSUpdates from '../pages/EMSUpdates';
+import PrivacyPolicy from '../pages/PrivacyPolicy';
+import TermsOfService from '../pages/TermsOfService';
+import KMPDCCompliance from '../pages/KMPDCCompliance';
+import SHAIntegration from '../pages/SHAIntegration';
 
 // EMT pages
 import EMTDashboard from '../pages/EMTDashboard';
@@ -43,6 +47,10 @@ export default function AppRoutes() {
       <Route path="/membership" element={<Membership />} />
       <Route path="/hospitals" element={<Hospitals />} />
       <Route path="/updates" element={<EMSUpdates />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/kmpdc-compliance" element={<KMPDCCompliance />} />
+      <Route path="/sha-integration" element={<SHAIntegration />} />
 
       {/* ── Patient Protected ───────────────────── */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
