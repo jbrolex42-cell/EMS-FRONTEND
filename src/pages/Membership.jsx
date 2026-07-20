@@ -136,10 +136,10 @@ export default function Membership() {
         <div className="mt-16 text-center">
           <p className="text-ems-muted text-sm mb-4">Questions about which plan is right for you?</p>
           <div className="flex justify-center gap-4 flex-wrap">
-            <a href="tel:0700395395" className="btn-emergency flex items-center gap-2 py-3 px-6">
-              <FiPhone size={15} /> Call 0700 395 395
+            <a href="tel:0757751980" className="btn-emergency flex items-center gap-2 py-3 px-6">
+              <FiPhone size={15} /> Call 0757 751 980
             </a>
-            <a href="mailto:info@ems.co.ke" className="btn-ghost py-3 px-6">Email Us</a>
+            <a href="mailto:jbrolex42@gmail.com" className="btn-ghost py-3 px-6">Email Us</a>
           </div>
         </div>
       </section>
