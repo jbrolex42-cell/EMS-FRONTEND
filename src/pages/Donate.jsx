@@ -946,7 +946,7 @@ export default function Donate() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="M-PESA phone number e.g. 0712345678"
+                      placeholder="M-PESA phone number "
                       className="w-full bg-ems-dark border border-ems-border rounded-xl pl-11 pr-4 py-3 text-white placeholder:text-ems-muted outline-none focus:border-emergency-red"
                     />
 
