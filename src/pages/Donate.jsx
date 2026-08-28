@@ -1,3 +1,4 @@
+```jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -11,8 +12,23 @@ import {
   FiMail,
   FiPhone,
   FiInfo,
+  FiLoader,
+  FiAlertCircle,
 } from 'react-icons/fi';
 import { FaMobileAlt } from 'react-icons/fa';
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  'http://localhost:5000/api';
+
+const MPESA_PAYBILL = '522522';
+const MPESA_ACCOUNT = '1296571637';
+
+const BANK_DETAILS = {
+  bank: 'KCB Bank',
+  accountName: 'ROLEX',
+  accountNumber: '1296571637',
+};
 
 export default function Donate() {
   const [amount, setAmount] = useState(500);
@@ -20,19 +36,22 @@ export default function Donate() {
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [purpose, setPurpose] = useState('Emergency Response');
   const [anonymous, setAnonymous] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState('');
+  const [donation, setDonation] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    mpesaReference: '',
+    bankReference: '',
   });
 
   const donationAmount =
     amount === 'custom'
       ? Number(customAmount) || 0
-      : amount;
+      : Number(amount);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -43,33 +62,198 @@ export default function Donate() {
     }));
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    if (donationAmount < 10) {
-      alert('Please enter a donation amount of at least KSh 10.');
-      return;
+  const validateForm = () => {
+    if (!donationAmount || donationAmount < 10) {
+      setError('Please enter a donation amount of at least KSh 10.');
+      return false;
     }
 
     if (!anonymous && !formData.name.trim()) {
-      alert('Please enter your full name or select Anonymous Donation.');
-      return;
+      setError(
+        'Please enter your full name or select Anonymous Donation.'
+      );
+      return false;
     }
 
     if (!formData.phone.trim()) {
-      alert('Please enter your phone number.');
-      return;
+      setError('Please enter your phone number.');
+      return false;
     }
 
-    if (
-      paymentMethod === 'mpesa' &&
-      !formData.mpesaReference.trim()
-    ) {
-      alert('Please enter your M-PESA confirmation/reference number.');
-      return;
+    if (paymentMethod === 'bank' && !formData.bankReference.trim()) {
+      setError(
+        'Please enter the bank transaction reference after making your transfer.'
+      );
+      return false;
     }
 
-    setSubmitted(true);
+    setError('');
+    return true;
+  };
+
+  const handleMpesaDonation = async () => {
+    setStatus('processing');
+    setError('');
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/donations/mpesa/stkpush`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: donationAmount,
+            phone: formData.phone,
+            name: anonymous ? 'Anonymous' : formData.name,
+            email: formData.email,
+            purpose,
+            anonymous,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || 'Unable to initiate M-PESA payment.'
+        );
+      }
+
+      setDonation(data.donation);
+
+      /*
+       * The backend should return the CheckoutRequestID.
+       * We keep the page in "waiting" state while the customer
+       * completes the M-PESA prompt.
+       */
+
+      setStatus('waiting');
+
+      if (data.checkoutRequestId) {
+        pollDonationStatus(data.checkoutRequestId);
+      }
+    } catch (err) {
+      console.error('M-PESA donation error:', err);
+
+      setError(
+        err.message ||
+          'Unable to start the M-PESA payment. Please try again.'
+      );
+
+      setStatus('error');
+    }
+  };
+
+  const pollDonationStatus = async (checkoutRequestId) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const checkStatus = async () => {
+      attempts += 1;
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/donations/status/${checkoutRequestId}`
+        );
+
+        const data = await response.json();
+
+        if (data.success && data.donation) {
+          setDonation(data.donation);
+
+          if (data.donation.status === 'completed') {
+            setStatus('success');
+            return;
+          }
+
+          if (data.donation.status === 'failed') {
+            setError(
+              data.donation.failureReason ||
+                'The M-PESA payment was not completed.'
+            );
+
+            setStatus('error');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Donation status error:', err);
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(checkStatus, 3000);
+      } else {
+        setError(
+          'We are still waiting for confirmation from M-PESA. Please check your M-PESA messages and try again later if necessary.'
+        );
+
+        setStatus('waiting');
+      }
+    };
+
+    checkStatus();
+  };
+
+  const handleBankDonation = async () => {
+    setStatus('processing');
+    setError('');
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/donations/bank`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: donationAmount,
+            name: anonymous ? 'Anonymous' : formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            purpose,
+            anonymous,
+            bankReference: formData.bankReference.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            'Unable to submit the bank donation.'
+        );
+      }
+
+      setDonation(data.donation);
+      setStatus('success');
+    } catch (err) {
+      console.error('Bank donation error:', err);
+
+      setError(
+        err.message ||
+          'Unable to submit the bank transfer details.'
+      );
+
+      setStatus('error');
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!validateForm()) return;
+
+    if (paymentMethod === 'mpesa') {
+      await handleMpesaDonation();
+    } else {
+      await handleBankDonation();
+    }
   };
 
   const resetDonation = () => {
@@ -78,18 +262,22 @@ export default function Donate() {
     setPaymentMethod('mpesa');
     setPurpose('Emergency Response');
     setAnonymous(false);
+    setStatus('idle');
+    setError('');
+    setDonation(null);
 
     setFormData({
       name: '',
       email: '',
       phone: '',
-      mpesaReference: '',
+      bankReference: '',
     });
-
-    setSubmitted(false);
   };
 
-  if (submitted) {
+  /*
+   * SUCCESS SCREEN
+   */
+  if (status === 'success') {
     return (
       <div className="min-h-screen bg-ems-dark flex items-center justify-center px-4 py-16">
         <div className="w-full max-w-2xl">
@@ -102,8 +290,8 @@ export default function Donate() {
               />
             </div>
 
-            <p className="text-emergency-red text-sm font-semibold uppercase tracking-widest mt-8">
-              Donation Received
+            <p className="text-green-400 text-sm font-semibold uppercase tracking-widest mt-8">
+              Donation Successful
             </p>
 
             <h1 className="text-white text-3xl md:text-4xl font-bold mt-3">
@@ -154,14 +342,27 @@ export default function Donate() {
               </div>
 
               {paymentMethod === 'mpesa' &&
-                formData.mpesaReference && (
+                donation?.mpesaReceiptNumber && (
                   <div className="flex justify-between gap-4 py-2">
                     <span className="text-ems-muted text-sm">
-                      M-PESA Reference
+                      M-PESA Receipt
                     </span>
 
                     <span className="text-white font-semibold text-sm uppercase">
-                      {formData.mpesaReference}
+                      {donation.mpesaReceiptNumber}
+                    </span>
+                  </div>
+                )}
+
+              {paymentMethod === 'bank' &&
+                formData.bankReference && (
+                  <div className="flex justify-between gap-4 py-2">
+                    <span className="text-ems-muted text-sm">
+                      Bank Reference
+                    </span>
+
+                    <span className="text-white font-semibold text-sm uppercase">
+                      {formData.bankReference}
                     </span>
                   </div>
                 )}
@@ -197,6 +398,11 @@ export default function Donate() {
     );
   }
 
+  /*
+   * WAITING FOR M-PESA
+   */
+  const isWaiting = status === 'waiting';
+
   return (
     <div className="min-h-screen bg-ems-dark">
 
@@ -231,8 +437,7 @@ export default function Donate() {
             <h1 className="text-white text-4xl md:text-6xl font-bold tracking-tight mt-6">
               Every Second
               <span className="text-emergency-red">
-                {' '}
-                Saves a Life.
+                {' '}Saves a Life.
               </span>
             </h1>
 
@@ -250,6 +455,7 @@ export default function Donate() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
+          {/* LEFT SIDE */}
           <div className="lg:col-span-1 space-y-6">
 
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
@@ -302,7 +508,7 @@ export default function Donate() {
                     </p>
 
                     <p className="text-ems-muted text-xs mt-1">
-                      Convenient local payment through M-PESA.
+                      Receive an M-PESA prompt directly on your phone.
                     </p>
                   </div>
                 </div>
@@ -328,6 +534,7 @@ export default function Donate() {
               </div>
             </div>
 
+            {/* MPESA */}
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
               <div className="flex items-center gap-3">
@@ -354,11 +561,11 @@ export default function Donate() {
               <div className="mt-5 p-4 rounded-xl bg-ems-dark border border-ems-border">
 
                 <p className="text-ems-muted text-xs uppercase tracking-wider">
-                  Paybill / Till Number
+                  PayBill Number
                 </p>
 
                 <p className="text-white text-2xl font-bold mt-1">
-                  XXXXX
+                  {MPESA_PAYBILL}
                 </p>
 
                 <p className="text-ems-muted text-xs mt-3">
@@ -366,23 +573,20 @@ export default function Donate() {
                 </p>
 
                 <p className="text-white font-semibold text-sm mt-1">
-                  EMS DONATION
+                  {MPESA_ACCOUNT}
                 </p>
 
               </div>
 
               <p className="text-ems-muted text-xs leading-relaxed mt-5">
-                M-PESA → Lipa na M-PESA → PayBill/Till →
-                enter the number above → enter your donation
-                amount → use{' '}
-                <span className="text-white font-medium">
-                  EMS DONATION
-                </span>{' '}
-                as the reference.
+                Select M-PESA below, enter your phone number and
+                donation amount. Your phone will receive an
+                M-PESA payment prompt.
               </p>
 
             </div>
 
+            {/* BANK */}
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
               <div className="flex items-center gap-3">
@@ -406,15 +610,15 @@ export default function Donate() {
 
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-4">
 
                 <div>
                   <p className="text-ems-muted text-xs">
                     Bank
                   </p>
 
-                  <p className="text-white text-sm font-semibold">
-                    YOUR BANK NAME
+                  <p className="text-white text-sm font-semibold mt-1">
+                    {BANK_DETAILS.bank}
                   </p>
                 </div>
 
@@ -423,8 +627,8 @@ export default function Donate() {
                     Account Name
                   </p>
 
-                  <p className="text-white text-sm font-semibold">
-                    EMS KENYA
+                  <p className="text-white text-sm font-semibold mt-1">
+                    {BANK_DETAILS.accountName}
                   </p>
                 </div>
 
@@ -433,26 +637,24 @@ export default function Donate() {
                     Account Number
                   </p>
 
-                  <p className="text-white text-sm font-semibold">
-                    XXXXXXXX
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-ems-muted text-xs">
-                    Branch
-                  </p>
-
-                  <p className="text-white text-sm font-semibold">
-                    YOUR BRANCH
+                  <p className="text-white text-sm font-semibold mt-1">
+                    {BANK_DETAILS.accountNumber}
                   </p>
                 </div>
 
               </div>
+
+              <p className="text-ems-muted text-xs leading-relaxed mt-5">
+                Make your bank transfer using the details above,
+                then select Bank Transfer below and enter your
+                transaction reference.
+              </p>
+
             </div>
 
           </div>
 
+          {/* FORM */}
           <div className="lg:col-span-2">
 
             <form
@@ -472,6 +674,7 @@ export default function Donate() {
                 Select an amount or enter a custom contribution.
               </p>
 
+              {/* AMOUNT */}
               <div className="mt-7">
 
                 <label className="text-white text-sm font-semibold">
@@ -481,6 +684,7 @@ export default function Donate() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
 
                   {[100, 500, 1000, 5000].map((value) => (
+
                     <button
                       type="button"
                       key={value}
@@ -496,6 +700,7 @@ export default function Donate() {
                     >
                       KSh {value.toLocaleString()}
                     </button>
+
                   ))}
 
                 </div>
@@ -535,6 +740,7 @@ export default function Donate() {
 
               </div>
 
+              {/* PURPOSE */}
               <div className="mt-8">
 
                 <label className="text-white text-sm font-semibold">
@@ -567,6 +773,7 @@ export default function Donate() {
 
               </div>
 
+              {/* PAYMENT METHOD */}
               <div className="mt-8">
 
                 <label className="text-white text-sm font-semibold">
@@ -597,13 +804,15 @@ export default function Donate() {
                       />
 
                       <div>
+
                         <p className="text-white font-semibold text-sm">
                           M-PESA
                         </p>
 
                         <p className="text-ems-muted text-xs mt-1">
-                          Pay via M-PESA
+                          Receive payment prompt
                         </p>
+
                       </div>
 
                     </div>
@@ -632,13 +841,15 @@ export default function Donate() {
                       />
 
                       <div>
+
                         <p className="text-white font-semibold text-sm">
                           Bank Transfer
                         </p>
 
                         <p className="text-ems-muted text-xs mt-1">
-                          Direct bank transfer
+                          Transfer directly to KCB
                         </p>
+
                       </div>
 
                     </div>
@@ -649,11 +860,13 @@ export default function Donate() {
 
               </div>
 
+              {/* PERSONAL INFORMATION */}
               <div className="mt-8">
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
                   <div>
+
                     <label className="text-white text-sm font-semibold">
                       Your Information
                     </label>
@@ -661,6 +874,7 @@ export default function Donate() {
                     <p className="text-ems-muted text-xs mt-1">
                       Used for donation records and confirmation.
                     </p>
+
                   </div>
 
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -733,7 +947,7 @@ export default function Donate() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="Phone number"
+                      placeholder="M-PESA phone number e.g. 0712345678"
                       className="w-full bg-ems-dark border border-ems-border rounded-xl pl-11 pr-4 py-3 text-white placeholder:text-ems-muted outline-none focus:border-emergency-red"
                     />
 
@@ -743,47 +957,145 @@ export default function Donate() {
 
               </div>
 
+              {/* MPESA INFORMATION */}
               {paymentMethod === 'mpesa' && (
+                <div className="mt-8 p-5 rounded-2xl bg-green-500/5 border border-green-500/20">
+
+                  <div className="flex gap-3">
+
+                    <FaMobileAlt
+                      className="text-green-400 flex-shrink-0 mt-0.5"
+                      size={20}
+                    />
+
+                    <div>
+
+                      <p className="text-white font-semibold">
+                        M-PESA Payment
+                      </p>
+
+                      <p className="text-ems-muted text-xs leading-relaxed mt-2">
+                        After you click the donation button, an
+                        M-PESA prompt will be sent to the phone
+                        number you entered. Enter your M-PESA PIN
+                        to complete the payment.
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+
+                        <div className="p-3 rounded-xl bg-ems-dark border border-ems-border">
+
+                          <p className="text-ems-muted text-[10px] uppercase">
+                            PayBill
+                          </p>
+
+                          <p className="text-white font-bold mt-1">
+                            {MPESA_PAYBILL}
+                          </p>
+
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-ems-dark border border-ems-border">
+
+                          <p className="text-ems-muted text-[10px] uppercase">
+                            Account
+                          </p>
+
+                          <p className="text-white font-bold mt-1">
+                            {MPESA_ACCOUNT}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* BANK REFERENCE */}
+              {paymentMethod === 'bank' && (
                 <div className="mt-8">
 
-                  <label className="text-white text-sm font-semibold">
-                    M-PESA Confirmation / Reference
-                  </label>
+                  <div className="flex gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
 
-                  <p className="text-ems-muted text-xs mt-1">
-                    Enter the confirmation code from your M-PESA
-                    message after completing your payment.
-                  </p>
+                    <FiInfo
+                      className="text-blue-400 flex-shrink-0 mt-0.5"
+                      size={18}
+                    />
+
+                    <p className="text-ems-muted text-xs leading-relaxed">
+                      First transfer your donation to
+                      <span className="text-white font-semibold">
+                        {' '}KCB Bank — ROLEX — 1296571637
+                      </span>.
+                      Then enter the transaction reference below.
+                    </p>
+
+                  </div>
+
+                  <label className="text-white text-sm font-semibold block mt-5">
+                    Bank Transaction Reference
+                  </label>
 
                   <input
                     type="text"
-                    name="mpesaReference"
-                    value={formData.mpesaReference}
+                    name="bankReference"
+                    value={formData.bankReference}
                     onChange={handleChange}
-                    placeholder="e.g. QAB123XYZ"
+                    placeholder="e.g. KCB123456789"
                     className="w-full mt-3 bg-ems-dark border border-ems-border rounded-xl px-4 py-3 text-white placeholder:text-ems-muted outline-none focus:border-emergency-red uppercase"
                   />
 
                 </div>
               )}
 
-              {paymentMethod === 'bank' && (
-                <div className="mt-8 flex gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+              {/* ERROR */}
+              {error && (
+                <div className="mt-6 flex gap-3 p-4 rounded-xl bg-red-500/5 border border-red-500/20">
 
-                  <FiInfo
-                    className="text-blue-400 flex-shrink-0 mt-0.5"
+                  <FiAlertCircle
+                    className="text-red-400 flex-shrink-0 mt-0.5"
                     size={18}
                   />
 
-                  <p className="text-ems-muted text-xs leading-relaxed">
-                    Please complete your bank transfer using the bank
-                    details provided on this page. Keep your bank
-                    transaction reference for your records.
+                  <p className="text-red-300 text-sm">
+                    {error}
                   </p>
 
                 </div>
               )}
 
+              {/* WAITING */}
+              {isWaiting && (
+                <div className="mt-6 flex gap-3 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
+
+                  <FiLoader
+                    className="text-yellow-400 flex-shrink-0 mt-0.5 animate-spin"
+                    size={18}
+                  />
+
+                  <div>
+
+                    <p className="text-white text-sm font-semibold">
+                      Waiting for M-PESA confirmation
+                    </p>
+
+                    <p className="text-ems-muted text-xs mt-1">
+                      Check your phone and enter your M-PESA PIN.
+                      We are waiting for Safaricom to confirm the
+                      transaction.
+                    </p>
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* SUMMARY */}
               <div className="mt-8 p-5 rounded-2xl bg-ems-dark border border-ems-border">
 
                 <div className="flex items-center justify-between gap-4">
@@ -828,10 +1140,41 @@ export default function Donate() {
 
               <button
                 type="submit"
-                className="w-full mt-5 py-4 rounded-xl bg-emergency-red text-white font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                disabled={
+                  status === 'processing' ||
+                  status === 'waiting'
+                }
+                className="w-full mt-5 py-4 rounded-xl bg-emergency-red text-white font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FiHeart size={17} />
-                Donate KSh {donationAmount.toLocaleString()}
+
+                {status === 'processing' ? (
+                  <>
+                    <FiLoader
+                      size={17}
+                      className="animate-spin"
+                    />
+
+                    Processing...
+                  </>
+                ) : status === 'waiting' ? (
+                  <>
+                    <FiLoader
+                      size={17}
+                      className="animate-spin"
+                    />
+
+                    Waiting for M-PESA...
+                  </>
+                ) : (
+                  <>
+                    <FiHeart size={17} />
+
+                    {paymentMethod === 'mpesa'
+                      ? `Donate KSh ${donationAmount.toLocaleString()} via M-PESA`
+                      : `Submit KSh ${donationAmount.toLocaleString()} Bank Donation`}
+                  </>
+                )}
+
               </button>
 
               <p className="text-center text-ems-muted text-xs mt-4">
@@ -871,3 +1214,4 @@ export default function Donate() {
     </div>
   );
 }
+```
