@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 import Home from '../pages/Home';
+import Donate from '../pages/Donate';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import ForgotPassword from '../pages/ForgotPassword';
@@ -39,6 +40,7 @@ export default function AppRoutes() {
     <Routes>
       {/* ── Public ─────────────────────────────── */}
       <Route path="/" element={<Home />} />
+      <Route path="/donate" element={<Donate />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
