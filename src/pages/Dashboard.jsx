@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -5,81 +6,279 @@ import StatsCard from '../components/StatsCard';
 import { useAuth } from '../context/AuthContext';
 import { emergencyService } from '../services/emergencyService';
 import {
-  FiAlertTriangle, FiClock, FiHeart, FiActivity,
-  FiArrowRight, FiCheckCircle, FiMapPin, FiPhone
+  FiAlertTriangle,
+  FiClock,
+  FiHeart,
+  FiActivity,
+  FiArrowRight,
+  FiCheckCircle,
+  FiMapPin,
+  FiPhone,
 } from 'react-icons/fi';
 import { timeAgo } from '../utils/formatTime';
 import { STATUS_COLORS } from '../utils/constants';
 import Loader from '../components/Loader';
 
+// ============================================================
+// DASHBOARD
+// ============================================================
+
 export default function Dashboard() {
   const { user } = useAuth();
+
   const [recentEmergencies, setRecentEmergencies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || user.role === 'admin' || user.role === 'superadmin' || user.role === 'emt') {
+    if (
+      !user ||
+      user.role === 'admin' ||
+      user.role === 'superadmin' ||
+      user.role === 'emt'
+    ) {
       setLoading(false);
       return;
     }
-    emergencyService.getMyEmergencies({ limit: 5 })
-      .then(({ data }) => setRecentEmergencies(data.emergencies || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+
+    let active = true;
+
+    emergencyService
+      .getMyEmergencies({ limit: 5 })
+      .then(({ data }) => {
+        if (active) {
+          setRecentEmergencies(data.emergencies || []);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRecentEmergencies([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [user]);
-  
+
+  // ==========================================================
+  // ROLE-BASED REDIRECTS
+  // ==========================================================
+
   if (user?.role === 'admin' || user?.role === 'superadmin') {
     return <Navigate to="/admin" replace />;
   }
+
   if (user?.role === 'emt') {
     return <Navigate to="/emt" replace />;
   }
 
-  const membershipActive = user?.membership?.status === 'active';
+  // ==========================================================
+  // MEMBERSHIP
+  // ==========================================================
+
+  const membershipActive =
+    user?.membership?.status === 'active';
+
+  // ==========================================================
+  // RESPONSE TIME
+  // ==========================================================
+
+  const emergenciesWithResponseTime = recentEmergencies.filter(
+    (emergency) => emergency.responseTime
+  );
+
+  const averageResponseTime = emergenciesWithResponseTime.length
+    ? `${Math.round(
+        emergenciesWithResponseTime.reduce(
+          (total, emergency) => total + emergency.responseTime,
+          0
+        ) / emergenciesWithResponseTime.length
+      )} min`
+    : '—';
+
+  // ==========================================================
+  // QUICK ACTIONS
+  // ==========================================================
+
+  const quickActions = [
+    {
+      to: '/emergency',
+      icon: '🚨',
+      label: 'Request Emergency',
+      sub: 'Dispatch now',
+    },
+    {
+      to: '/membership',
+      icon: '💳',
+      label: membershipActive
+        ? 'Manage Membership'
+        : 'Get Covered',
+      sub: membershipActive
+        ? 'Active plan'
+        : 'From KES 4,000/yr',
+    },
+    {
+      to: '/hospitals',
+      icon: '🏥',
+      label: 'Nearest Hospitals',
+      sub: 'Live availability',
+    },
+    {
+      to: '/settings',
+      icon: '⚙️',
+      label: 'Update Medical Info',
+      sub: 'Blood group, allergies',
+    },
+  ];
+
+  // ==========================================================
+  // MEDICAL PROFILE
+  // ==========================================================
+
+  const medicalProfile = [
+    {
+      label: 'Blood Group',
+      value: user?.bloodGroup || 'Not set',
+    },
+    {
+      label: 'SHA Number',
+      value: user?.shaNumber || 'Not linked',
+    },
+    {
+      label: 'ID Number',
+      value: user?.idNumber || 'Not set',
+    },
+    {
+      label: 'Allergies',
+      value: user?.allergies?.join(', ') || 'None recorded',
+    },
+  ];
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
     <DashboardLayout title="My Dashboard">
 
-      {/* Welcome */}
-      <div className="mb-7">
-        <h2 className="text-2xl sm:text-3xl font-display text-ems-white">
+      {/* ====================================================
+          WELCOME
+      ==================================================== */}
+
+      <section className="mb-7">
+        <h2 className="
+          text-2xl font-display
+          text-slate-900
+          sm:text-3xl
+        ">
           WELCOME BACK,{' '}
-          <span className="text-emergency-red">{user?.firstName?.toUpperCase()}</span>
+          <span className="text-red-600">
+            {user?.firstName?.toUpperCase()}
+          </span>
         </h2>
-        <p className="text-ems-muted text-sm mt-1">
+
+        <p className="
+          mt-2 text-sm leading-relaxed
+          text-slate-600
+        ">
           {membershipActive
-            ? `Your ${user.membership.type} membership is active until ${new Date(user.membership.expiryDate).toLocaleDateString('en-KE')}`
+            ? `Your ${user.membership.type} membership is active until ${new Date(
+                user.membership.expiryDate
+              ).toLocaleDateString('en-KE')}`
             : 'No active membership. Get covered from KES 4,000 / year.'}
         </p>
-      </div>
+      </section>
 
-      {/* Emergency CTA */}
-      <div className="ems-card border-emergency-red/30 bg-emergency-red/5 mb-7
-                      flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 bg-emergency-red rounded-full animate-pulse" />
-            <span className="text-emergency-red text-xs font-semibold uppercase tracking-widest">
+      {/* ====================================================
+          EMERGENCY CTA
+      ==================================================== */}
+
+      <section className="
+        mb-7 flex flex-col items-start
+        justify-between gap-5
+        rounded-2xl border border-red-200
+        bg-red-50 p-5 shadow-sm
+        sm:flex-row sm:items-center
+        sm:p-7
+      ">
+        <div className="min-w-0 flex-1">
+
+          <div className="mb-3 flex items-center gap-2">
+            <span className="
+              h-2.5 w-2.5 rounded-full
+              bg-red-600 animate-pulse
+            " />
+
+            <span className="
+              text-xs font-bold uppercase
+              tracking-widest text-red-700
+            ">
               Dispatch Active 24 / 7
             </span>
           </div>
-          <h3 className="text-ems-white font-bold text-xl mb-1">Need Emergency Help?</h3>
-          <p className="text-ems-muted text-sm">
-            Tap below · or call <strong className="text-white">0700 395 395</strong>
-            {' '}· Toll Free: <strong className="text-white">1514</strong>
-            {' '}· USSD: <strong className="text-white">*888#</strong>
+
+          <h3 className="
+            mb-2 text-xl font-bold
+            text-slate-900 sm:text-2xl
+          ">
+            Need Emergency Help?
+          </h3>
+
+          <p className="
+            text-sm leading-7 text-slate-600
+          ">
+            Tap below · or call{' '}
+            <strong className="font-bold text-slate-900">
+              0700 395 395
+            </strong>
+            {' '}· Toll Free:{' '}
+            <strong className="font-bold text-slate-900">
+              1514
+            </strong>
+            {' '}· USSD:{' '}
+            <strong className="font-bold text-slate-900">
+              *888#
+            </strong>
           </p>
         </div>
+
         <Link
           to="/emergency"
-          className="btn-emergency flex items-center gap-2 py-4 px-8 flex-shrink-0 text-lg font-bold"
+          className="
+            inline-flex shrink-0
+            items-center justify-center gap-3
+            rounded-xl bg-red-600
+            px-7 py-4
+            text-base font-bold text-white
+            shadow-lg shadow-red-600/20
+            transition-all duration-200
+            hover:-translate-y-0.5
+            hover:bg-red-700
+            hover:shadow-xl
+            focus:outline-none
+            focus:ring-2 focus:ring-red-500
+            focus:ring-offset-2
+          "
         >
-          <FiAlertTriangle size={20} /> SOS Request
+          <FiAlertTriangle size={20} />
+          SOS Request
         </Link>
-      </div>
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+      {/* ====================================================
+          STATISTICS
+      ==================================================== */}
+
+      <section className="
+        mb-7 grid grid-cols-1 gap-4
+        sm:grid-cols-2
+        lg:grid-cols-4
+      ">
         <StatsCard
           title="Total Emergencies"
           value={user?.totalEmergencies || 0}
@@ -87,151 +286,367 @@ export default function Dashboard() {
           icon={FiAlertTriangle}
           color="#FF3B30"
         />
+
         <StatsCard
           title="Membership"
           value={membershipActive ? 'Active' : 'Inactive'}
           subtitle={user?.membership?.type || 'No plan'}
           icon={FiHeart}
-          color={membershipActive ? '#22C55E' : '#6B7280'}
+          color={membershipActive ? '#16A34A' : '#6B7280'}
         />
+
         <StatsCard
           title="Last Response"
-          value={recentEmergencies[0] ? timeAgo(recentEmergencies[0].createdAt) : '—'}
+          value={
+            recentEmergencies[0]
+              ? timeAgo(recentEmergencies[0].createdAt)
+              : '—'
+          }
           subtitle="Most recent"
           icon={FiClock}
-          color="#3B82F6"
+          color="#2563EB"
         />
+
         <StatsCard
           title="Avg Response"
-          value={(() => {
-            const withTime = recentEmergencies.filter(e => e.responseTime);
-            if (!withTime.length) return '—';
-            return `${Math.round(withTime.reduce((s, e) => s + e.responseTime, 0) / withTime.length)} min`;
-          })()}
+          value={averageResponseTime}
           subtitle="Minutes on scene"
           icon={FiActivity}
-          color="#8B5CF6"
+          color="#7C3AED"
         />
-      </div>
+      </section>
 
-      {/* Main grid */}
-      <div className="grid lg:grid-cols-3 gap-5">
+      {/* ====================================================
+          MAIN DASHBOARD GRID
+      ==================================================== */}
 
-        {/* Recent emergencies */}
-        <div className="lg:col-span-2 ems-card">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-ems-white font-semibold">Recent Emergencies</h3>
-            <Link to="/tracking"
-              className="text-emergency-red text-xs hover:underline flex items-center gap-1">
-              Track active <FiArrowRight size={11} />
+      <div className="
+        grid items-start gap-5
+        lg:grid-cols-3
+      ">
+
+        {/* ==================================================
+            RECENT EMERGENCIES
+        ================================================== */}
+
+        <section className="
+          min-w-0 rounded-2xl
+          border border-slate-200
+          bg-white p-5
+          shadow-sm sm:p-6
+          lg:col-span-2
+        ">
+          <div className="
+            mb-5 flex items-center
+            justify-between gap-3
+          ">
+            <h3 className="
+              font-bold text-slate-900
+            ">
+              Recent Emergencies
+            </h3>
+
+            <Link
+              to="/tracking"
+              className="
+                flex shrink-0 items-center gap-1
+                text-xs font-semibold text-red-600
+                transition-colors hover:text-red-700
+              "
+            >
+              Track active
+              <FiArrowRight size={13} />
             </Link>
           </div>
 
           {loading ? (
-            <div className="py-10 flex justify-center"><Loader /></div>
+            <div className="
+              flex justify-center py-12
+            ">
+              <Loader />
+            </div>
           ) : recentEmergencies.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <FiCheckCircle size={40} className="text-ems-muted mx-auto" />
-              <p className="text-ems-muted text-sm">No emergencies yet</p>
-              <p className="text-ems-muted text-xs">We hope it stays that way 🙏</p>
+            <div className="
+              space-y-3 py-12 text-center
+            ">
+              <FiCheckCircle
+                size={42}
+                className="mx-auto text-slate-400"
+              />
+
+              <p className="
+                text-sm font-semibold
+                text-slate-700
+              ">
+                No emergencies yet
+              </p>
+
+              <p className="
+                text-xs text-slate-500
+              ">
+                We hope it stays that way 🙏
+              </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {recentEmergencies.map(em => (
-                <div key={em._id}
-                  className="flex items-center gap-4 p-3.5 bg-ems-dark rounded-xl hover:bg-ems-black transition-colors">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-ems-black flex-shrink-0">
-                    {em.type === 'cardiac'   ? '💔'
-                    : em.type === 'trauma'   ? '🩹'
-                    : em.type === 'obstetric'? '🤱'
-                    : em.type === 'stroke'   ? '🧠'
-                    : '🚑'}
+            <div className="space-y-3">
+              {recentEmergencies.map((emergency) => (
+                <div
+                  key={emergency._id}
+                  className="
+                    flex items-center gap-3
+                    rounded-xl border border-slate-100
+                    bg-slate-50 p-3.5
+                    transition-colors
+                    hover:border-red-100
+                    hover:bg-red-50/40
+                    sm:gap-4
+                  "
+                >
+                  <div className="
+                    flex h-11 w-11 shrink-0
+                    items-center justify-center
+                    rounded-xl border border-slate-200
+                    bg-white text-xl shadow-sm
+                  ">
+                    {emergency.type === 'cardiac'
+                      ? '💔'
+                      : emergency.type === 'trauma'
+                        ? '🩹'
+                        : emergency.type === 'obstetric'
+                          ? '🤱'
+                          : emergency.type === 'stroke'
+                            ? '🧠'
+                            : '🚑'}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-ems-white text-sm font-medium capitalize">{em.type}</span>
-                      <span className="status-badge text-xs"
-                        style={{ background: `${STATUS_COLORS[em.status]}20`, color: STATUS_COLORS[em.status] }}>
-                        {em.status?.replace(/_/g, ' ')}
+
+                  <div className="min-w-0 flex-1">
+
+                    <div className="
+                      mb-1 flex flex-wrap
+                      items-center gap-2
+                    ">
+                      <span className="
+                        text-sm font-bold
+                        capitalize text-slate-900
+                      ">
+                        {emergency.type}
+                      </span>
+
+                      <span
+                        className="
+                          inline-flex items-center
+                          rounded-full px-2.5 py-1
+                          text-[10px] font-bold
+                          capitalize
+                        "
+                        style={{
+                          backgroundColor: `${
+                            STATUS_COLORS[emergency.status] || '#64748B'
+                          }15`,
+                          color:
+                            STATUS_COLORS[emergency.status] || '#64748B',
+                        }}
+                      >
+                        {emergency.status?.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-ems-muted flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <FiMapPin size={10} /> {em.patientLocation?.county || 'Unknown'}
+
+                    <div className="
+                      flex flex-wrap items-center
+                      gap-x-4 gap-y-1
+                      text-xs text-slate-500
+                    ">
+                      <span className="
+                        flex items-center gap-1
+                      ">
+                        <FiMapPin size={11} />
+                        {emergency.patientLocation?.county || 'Unknown'}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <FiClock size={10} /> {timeAgo(em.createdAt)}
+
+                      <span className="
+                        flex items-center gap-1
+                      ">
+                        <FiClock size={11} />
+                        {timeAgo(emergency.createdAt)}
                       </span>
                     </div>
                   </div>
-                  <span className="text-ems-muted text-xs font-mono hidden sm:block">
-                    {em.emergencyId?.slice(-8)}
+
+                  <span className="
+                    hidden shrink-0
+                    font-mono text-xs
+                    text-slate-500
+                    sm:block
+                  ">
+                    {emergency.emergencyId?.slice(-8)}
                   </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Right column */}
-        <div className="space-y-5">
+        {/* ==================================================
+            RIGHT COLUMN
+        ================================================== */}
 
-          {/* Quick actions */}
-          <div className="ems-card">
-            <h3 className="text-ems-white font-semibold mb-4">Quick Actions</h3>
-            <div className="space-y-1.5">
-              {[
-                { to: '/emergency',  icon: '🚨', label: 'Request Emergency', sub: 'Dispatch now' },
-                { to: '/membership', icon: '💳', label: membershipActive ? 'Manage Membership' : 'Get Covered', sub: membershipActive ? 'Active plan' : 'From KES 4,000/yr' },
-                { to: '/hospitals',  icon: '🏥', label: 'Nearest Hospitals', sub: 'Live availability' },
-                { to: '/settings',   icon: '⚙️', label: 'Update Medical Info', sub: 'Blood group, allergies' },
-              ].map(({ to, icon, label, sub }) => (
-                <Link key={to} to={to}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-ems-dark transition-colors group">
-                  <span className="text-xl w-8 flex-shrink-0">{icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-ems-white text-sm font-medium group-hover:text-emergency-red transition-colors truncate">
-                      {label}
-                    </p>
-                    <p className="text-ems-muted text-xs">{sub}</p>
-                  </div>
-                  <FiArrowRight size={14} className="text-ems-muted group-hover:text-emergency-red transition-colors flex-shrink-0" />
-                </Link>
-              ))}
+        <aside className="min-w-0 space-y-5">
+
+          {/* QUICK ACTIONS */}
+
+          <section className="
+            rounded-2xl border border-slate-200
+            bg-white p-5 shadow-sm
+          ">
+            <h3 className="
+              mb-4 font-bold text-slate-900
+            ">
+              Quick Actions
+            </h3>
+
+            <div className="space-y-2">
+              {quickActions.map(
+                ({ to, icon, label, sub }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    className="
+                      group flex items-center gap-3
+                      rounded-xl border border-transparent
+                      p-3 transition-all
+                      hover:border-red-100
+                      hover:bg-red-50/60
+                    "
+                  >
+                    <span className="
+                      flex h-10 w-10 shrink-0
+                      items-center justify-center
+                      rounded-xl bg-slate-100
+                      text-xl transition-colors
+                      group-hover:bg-red-100
+                    ">
+                      {icon}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="
+                        truncate text-sm font-semibold
+                        text-slate-800
+                        transition-colors
+                        group-hover:text-red-600
+                      ">
+                        {label}
+                      </p>
+
+                      <p className="
+                        mt-0.5 text-xs text-slate-500
+                      ">
+                        {sub}
+                      </p>
+                    </div>
+
+                    <FiArrowRight
+                      size={15}
+                      className="
+                        shrink-0 text-slate-400
+                        transition-all
+                        group-hover:translate-x-1
+                        group-hover:text-red-600
+                      "
+                    />
+                  </Link>
+                )
+              )}
             </div>
-          </div>
+          </section>
 
-          {/* Medical profile */}
-          <div className="ems-card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-ems-white font-semibold">Medical Profile</h3>
-              <Link to="/settings" className="text-emergency-red text-xs hover:underline">Edit</Link>
+          {/* MEDICAL PROFILE */}
+
+          <section className="
+            rounded-2xl border border-slate-200
+            bg-white p-5 shadow-sm
+          ">
+            <div className="
+              mb-4 flex items-center
+              justify-between gap-3
+            ">
+              <h3 className="
+                font-bold text-slate-900
+              ">
+                Medical Profile
+              </h3>
+
+              <Link
+                to="/settings"
+                className="
+                  text-xs font-semibold
+                  text-red-600 hover:text-red-700
+                  hover:underline
+                "
+              >
+                Edit
+              </Link>
             </div>
-            <div className="space-y-2.5">
-              {[
-                { label: 'Blood Group', value: user?.bloodGroup || 'Not set' },
-                { label: 'SHA Number',  value: user?.shaNumber  || 'Not linked' },
-                { label: 'ID Number',   value: user?.idNumber   || 'Not set' },
-                { label: 'Allergies',   value: user?.allergies?.join(', ') || 'None recorded' },
-              ].map(({ label, value }) => (
-                <div key={label}
-                  className="flex justify-between items-start gap-2 py-2 border-b border-ems-border last:border-0">
-                  <span className="text-ems-muted text-xs flex-shrink-0">{label}</span>
-                  <span className="text-ems-white text-xs font-medium text-right">{value}</span>
+
+            <div>
+              {medicalProfile.map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="
+                    flex items-start
+                    justify-between gap-3
+                    border-b border-slate-100
+                    py-3 last:border-0
+                  "
+                >
+                  <span className="
+                    shrink-0 text-xs
+                    text-slate-500
+                  ">
+                    {label}
+                  </span>
+
+                  <span className="
+                    max-w-[65%] break-words
+                    text-right text-xs
+                    font-semibold text-slate-800
+                  ">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          {/* Emergency contact */}
-          <div className="p-4 bg-emergency-red/5 border border-emergency-red/20 rounded-2xl text-center">
-            <p className="text-ems-muted text-xs mb-2">Always available</p>
-            <a href="tel:1514"
-              className="flex items-center justify-center gap-2 text-emergency-red font-bold text-lg hover:underline">
-              <FiPhone size={16} /> 1514 — Toll Free
+          {/* EMERGENCY CONTACT */}
+
+          <section className="
+            rounded-2xl border border-red-200
+            bg-red-50 p-5 text-center
+          ">
+            <p className="
+              mb-3 text-xs font-medium
+              text-slate-600
+            ">
+              Always available
+            </p>
+
+            <a
+              href="tel:1514"
+              className="
+                inline-flex items-center
+                justify-center gap-2
+                text-lg font-bold text-red-600
+                transition-colors hover:text-red-700
+                hover:underline
+              "
+            >
+              <FiPhone size={17} />
+              1514 — Toll Free
             </a>
-          </div>
-        </div>
+          </section>
+
+        </aside>
       </div>
     </DashboardLayout>
   );

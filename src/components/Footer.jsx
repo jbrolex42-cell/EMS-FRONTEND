@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import {
   FiPhone,
@@ -13,234 +14,272 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function Footer() {
+  const socialLinks = [
+    {
+      Icon: FiFacebook,
+      href: 'https://www.facebook.com/profile.php?id=61574262032887',
+    },
+    {
+      Icon: FiInstagram,
+      href: 'https://www.instagram.com/iced.rolex?igsh=MTZ6NmlwamNidmE0NQ==',
+    },
+    {
+      Icon: FiTwitter,
+      href: 'https://x.com/kenduniccur',
+    },
+    {
+      Icon: FiYoutube,
+      href: 'https://youtube.com/@gamer254-k4c?si=aumUBJ2NgFAhbf-t',
+    },
+    {
+      Icon: FaWhatsapp,
+      href: 'https://wa.me/qr/WYE74MOMBBA3J1',
+    },
+  ];
+
+  const services = [
+    'Emergency Dispatch',
+    'Ambulance Network',
+    'Motorcycle Response',
+    'Air Evacuation',
+    'Medical Taxi Escort',
+    'Telemedicine',
+  ];
+
+  const memberships = [
+    'Individual Cover',
+    'Family Package',
+    'Mum & Dad Cover',
+    'Corporate Cover',
+    'School Cover',
+    'SACCO Package',
+  ];
+
+  const contactDetails = [
+    {
+      Icon: FiPhone,
+      text: '0757 751 980',
+      red: true,
+    },
+    {
+      Icon: FiMail,
+      text: 'info@ems.co.ke',
+    },
+    {
+      Icon: FiMapPin,
+      text: 'Nairobi, Kenya — 47 Counties',
+    },
+  ];
+
+  const legalLinks = [
+    {
+      label: 'Privacy Policy',
+      to: '/privacy-policy',
+    },
+    {
+      label: 'Terms of Service',
+      to: '/terms-of-service',
+    },
+    {
+      label: 'KMPDC Compliance',
+      to: '/kmpdc-compliance',
+    },
+    {
+      label: 'SHA Integration',
+      to: '/sha-integration',
+    },
+  ];
+
+  const headingClass =
+    'text-slate-900 font-bold text-sm uppercase tracking-widest';
+
+  const linkClass =
+    'block w-fit text-slate-600 hover:text-red-600 text-sm transition-colors duration-200';
+
   return (
-    <footer className="bg-ems-dark border-t border-ems-border mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="relative mt-24 w-full overflow-hidden border-t border-slate-200 bg-white text-slate-800">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
 
-          {/* Brand */}
-          <div className="space-y-4">
+        {/* MAIN FOOTER CONTENT */}
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emergency-red rounded-xl flex items-center justify-center">
-                <span className="text-white font-display text-lg">
+          {/* BRAND */}
+          <div className="space-y-5">
+
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3"
+              aria-label="EMS Kenya Home"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-600 shadow-md shadow-red-600/20">
+                <span className="font-display text-lg font-bold text-white">
                   EMS
                 </span>
               </div>
 
               <div>
-                <div className="text-white font-semibold text-sm">
+                <div className="text-base font-bold text-slate-900">
                   EMS Kenya
                 </div>
 
-                <div className="text-ems-muted text-xs">
+                <div className="text-xs font-medium text-slate-500">
                   Emergency Medical System
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <p className="text-ems-muted text-sm leading-relaxed">
+            <p className="max-w-sm text-sm leading-7 text-slate-600">
               Kenya's fastest emergency dispatch network. Powered by
               real-time GPS, AI triage, and community EMTs. Available
               across all 47 counties.
             </p>
 
-            {/* Social Media */}
-            <div className="flex gap-3">
-
-              {[
-                {
-                  Icon: FiFacebook,
-                  href: 'https://www.facebook.com/profile.php?id=61574262032887',
-                },
-                {
-                  Icon: FiInstagram,
-                  href: 'https://www.instagram.com/iced.rolex?igsh=MTZ6NmlwamNidmE0NQ==',
-                },
-                {
-                  Icon: FiTwitter,
-                  href: 'https://x.com/kenduniccur',
-                },
-                {
-                  Icon: FiYoutube,
-                  href: 'https://youtube.com/@gamer254-k4c?si=aumUBJ2NgFAhbf-t',
-                },
-                {
-                  Icon: FaWhatsapp,
-                  href: 'https://wa.me/qr/WYE74MOMBBA3J1',
-                },
-              ].map(({ Icon, href }, index) => (
+            {/* SOCIAL MEDIA */}
+            <div className="flex flex-wrap gap-2.5">
+              {socialLinks.map(({ Icon, href }, index) => (
                 <a
                   key={index}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 bg-ems-card border border-ems-border rounded-lg flex items-center justify-center text-ems-muted hover:text-emergency-red hover:border-emergency-red transition-colors"
-                  aria-label="Social media"
+                  className="
+                    flex h-10 w-10 items-center justify-center
+                    rounded-xl border border-slate-200 bg-slate-50
+                    text-slate-600 transition-all duration-200
+                    hover:border-red-200 hover:bg-red-50
+                    hover:text-red-600 hover:-translate-y-0.5
+                  "
+                  aria-label={`Social media link ${index + 1}`}
                 >
-                  <Icon size={15} />
+                  <Icon size={17} />
                 </a>
               ))}
-
             </div>
 
           </div>
 
-          {/* Services */}
-          <div className="space-y-4">
+          {/* SERVICES */}
+          <div className="space-y-5">
 
-            <h3 className="text-ems-white font-semibold text-sm uppercase tracking-widest">
+            <h3 className={headingClass}>
               Services
             </h3>
 
-            {[
-              'Emergency Dispatch',
-              'Ambulance Network',
-              'Motorcycle Response',
-              'Air Evacuation',
-              'Medical Taxi Escort',
-              'Telemedicine',
-            ].map((service) => (
-              <Link
-                key={service}
-                to="#"
-                className="block text-ems-muted hover:text-emergency-red text-sm transition-colors"
-              >
-                {service}
-              </Link>
-            ))}
+            <ul className="space-y-3">
+              {services.map((service) => (
+                <li key={service}>
+                  <Link
+                    to="#"
+                    className={linkClass}
+                  >
+                    {service}
+                  </Link>
+                </li>
+              ))}
+            </ul>
 
           </div>
 
-          {/* Membership */}
-          <div className="space-y-4">
+          {/* MEMBERSHIP */}
+          <div className="space-y-5">
 
-            <h3 className="text-ems-white font-semibold text-sm uppercase tracking-widest">
+            <h3 className={headingClass}>
               Membership
             </h3>
 
-            {[
-              'Individual Cover',
-              'Family Package',
-              'Mum & Dad Cover',
-              'Corporate Cover',
-              'School Cover',
-              'SACCO Package',
-            ].map((membership) => (
-              <Link
-                key={membership}
-                to="/membership"
-                className="block text-ems-muted hover:text-emergency-red text-sm transition-colors"
-              >
-                {membership}
-              </Link>
-            ))}
+            <ul className="space-y-3">
+              {memberships.map((membership) => (
+                <li key={membership}>
+                  <Link
+                    to="/membership"
+                    className={linkClass}
+                  >
+                    {membership}
+                  </Link>
+                </li>
+              ))}
+            </ul>
 
           </div>
 
-          {/* Contact */}
-          <div className="space-y-4">
+          {/* CONTACT */}
+          <div className="space-y-5">
 
-            <h3 className="text-ems-white font-semibold text-sm uppercase tracking-widest">
+            <h3 className={headingClass}>
               Contact
             </h3>
 
-            <div className="space-y-3">
-
-              {[
-                {
-                  Icon: FiPhone,
-                  text: '0757 751 980',
-                  red: true,
-                },
-                {
-                  Icon: FiMail,
-                  text: 'info@ems.co.ke',
-                },
-                {
-                  Icon: FiMapPin,
-                  text: 'Nairobi, Kenya — 47 Counties',
-                },
-              ].map(({ Icon, text, red }, index) => (
+            <div className="space-y-4">
+              {contactDetails.map(({ Icon, text, red }, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-3"
                 >
                   <Icon
-                    size={14}
+                    size={16}
                     className={`mt-0.5 flex-shrink-0 ${
-                      red
-                        ? 'text-emergency-red'
-                        : 'text-ems-muted'
+                      red ? 'text-red-600' : 'text-slate-500'
                     }`}
                   />
 
-                  <span className="text-ems-muted text-sm">
+                  <span className="text-sm leading-6 text-slate-600">
                     {text}
                   </span>
                 </div>
               ))}
-
             </div>
 
             {/* USSD */}
-            <div className="mt-4 p-3 bg-emergency-red/10 border border-emergency-red/30 rounded-xl">
-
-              <p className="text-emergency-red font-semibold text-sm">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-bold tracking-wide text-red-700">
                 USSD: *888#
               </p>
 
-              <p className="text-ems-muted text-xs mt-1">
+              <p className="mt-1 text-xs text-slate-600">
                 Works on any network
               </p>
-
             </div>
 
           </div>
 
         </div>
 
-        {/* =====================================================
-            DONATION BOX
-        ====================================================== */}
-
+        {/* DONATION SECTION */}
         <div className="mt-14">
 
-          <div className="relative overflow-hidden rounded-2xl border border-emergency-red/30 bg-emergency-red/5">
+          <div className="relative overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-orange-50">
 
-            {/* Decorative background */}
-            <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-emergency-red/10 blur-2xl pointer-events-none" />
+            {/* DECORATIVE BACKGROUND */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-red-200/40 blur-3xl" />
 
-            <div className="absolute -left-16 -bottom-16 w-48 h-48 rounded-full bg-emergency-red/10 blur-2xl pointer-events-none" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-orange-200/40 blur-3xl" />
 
             <div className="relative p-6 md:p-8">
 
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
 
-                {/* Donation Message */}
+                {/* DONATION MESSAGE */}
                 <div className="flex items-start gap-4">
 
-                  <div className="w-12 h-12 rounded-xl bg-emergency-red/15 border border-emergency-red/20 flex items-center justify-center flex-shrink-0">
-
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-100">
                     <FiHeart
-                      className="text-emergency-red"
+                      className="text-red-600"
                       size={22}
                     />
-
                   </div>
 
                   <div>
 
-                    <p className="text-emergency-red text-xs font-semibold uppercase tracking-widest">
+                    <p className="text-xs font-bold uppercase tracking-widest text-red-600">
                       Support Emergency Response
                     </p>
 
-                    <h3 className="text-white text-xl md:text-2xl font-bold mt-1">
+                    <h3 className="mt-2 text-xl font-bold text-slate-900 md:text-2xl">
                       Every Second Saves a Life.
                     </h3>
 
-                    <p className="text-ems-muted text-sm mt-2 max-w-2xl leading-relaxed">
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
                       Your contribution helps EMS Kenya strengthen
                       emergency response, support community EMTs,
                       and help provide life-saving care across Kenya.
@@ -250,10 +289,19 @@ export default function Footer() {
 
                 </div>
 
-                {/* Donate Button */}
+                {/* DONATE BUTTON */}
                 <Link
                   to="/donate"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emergency-red text-white font-bold text-sm hover:opacity-90 hover:scale-[1.02] transition-all whitespace-nowrap shadow-lg shadow-red-900/20"
+                  className="
+                    inline-flex flex-shrink-0 items-center
+                    justify-center gap-2 rounded-xl
+                    bg-red-600 px-6 py-3.5
+                    text-sm font-bold text-white
+                    shadow-lg shadow-red-600/20
+                    transition-all duration-200
+                    hover:-translate-y-0.5 hover:bg-red-700
+                    hover:shadow-xl
+                  "
                 >
                   <FiHeart size={17} />
                   Donate Now
@@ -262,18 +310,18 @@ export default function Footer() {
 
               </div>
 
-              {/* Small donation information */}
-              <div className="mt-6 pt-5 border-t border-emergency-red/15 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* DONATION INFORMATION */}
+              <div className="mt-7 flex flex-col gap-3 border-t border-red-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
 
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-400" />
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-green-500" />
 
-                  <span className="text-ems-muted text-xs">
+                  <span className="text-xs font-medium text-slate-600">
                     M-PESA & Bank Transfer Supported
                   </span>
                 </div>
 
-                <span className="text-ems-muted text-xs">
+                <span className="text-xs leading-5 text-slate-500">
                   Ambulance • Emergency Response • Community EMT • General Support
                 </span>
 
@@ -285,36 +333,20 @@ export default function Footer() {
 
         </div>
 
-      <div className="border-t border-ems-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* BOTTOM FOOTER */}
+        <div className="mt-12 flex flex-col items-center justify-between gap-5 border-t border-slate-200 pt-8 md:flex-row">
 
-          <p className="text-ems-muted text-sm">
+          <p className="text-center text-sm text-slate-500 md:text-left">
             © 2026 EMS Kenya. Developed by ROLEX.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
 
-            {[
-              {
-                label: 'Privacy Policy',
-                to: '/privacy-policy',
-              },
-              {
-                label: 'Terms of Service',
-                to: '/terms-of-service',
-              },
-              {
-                label: 'KMPDC Compliance',
-                to: '/kmpdc-compliance',
-              },
-              {
-                label: 'SHA Integration',
-                to: '/sha-integration',
-              },
-            ].map(({ label, to }) => (
+            {legalLinks.map(({ label, to }) => (
               <Link
                 key={label}
                 to={to}
-                className="text-ems-muted hover:text-white text-xs transition-colors"
+                className="text-xs font-medium text-slate-500 transition-colors hover:text-red-600"
               >
                 {label}
               </Link>
@@ -325,6 +357,7 @@ export default function Footer() {
         </div>
 
       </div>
+
     </footer>
   );
 }

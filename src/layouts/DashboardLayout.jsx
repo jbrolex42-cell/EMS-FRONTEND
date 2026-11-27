@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -6,9 +7,29 @@ import { useNotifications } from '../hooks/useNotifications';
 import { FiBell, FiMenu, FiAlertTriangle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * ============================================================
+ * EMS KENYA — DASHBOARD LAYOUT
+ * Professional White Theme | Responsive Dashboard
+ * ============================================================
+ */
+
 export default function DashboardLayout({ children, title = '' }) {
+  // ==========================================================
+  // AUTHENTICATION
+  // ==========================================================
+
   const { user } = useAuth();
+
+  // ==========================================================
+  // SIDEBAR STATE
+  // ==========================================================
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // ==========================================================
+  // NOTIFICATIONS
+  // ==========================================================
 
   const {
     notifications,
@@ -22,71 +43,216 @@ export default function DashboardLayout({ children, title = '' }) {
     refresh,
   } = useNotifications();
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
-    <div className="min-h-screen bg-ems-black flex">
+    <div className="
+      min-h-screen
+      w-full
+      flex
+      overflow-x-hidden
+      bg-white
+      text-slate-800
+    ">
+
+      {/* ======================================================
+          SIDEBAR
+      ====================================================== */}
 
       <Sidebar
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      {/* ======================================================
+          DASHBOARD CONTENT WRAPPER
+      ====================================================== */}
 
-        <header className="h-14 md:h-16 bg-ems-dark border-b border-ems-border
-                           flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-3">
+      <div className="
+        flex-1
+        min-w-0
+        min-h-screen
+        flex
+        flex-col
+        overflow-hidden
+        bg-white
+      ">
+
+        {/* ====================================================
+            DASHBOARD HEADER
+        ==================================================== */}
+
+        <header className="
+          sticky
+          top-0
+          z-30
+          min-h-14
+          md:min-h-16
+          w-full
+          flex
+          flex-shrink-0
+          items-center
+          justify-between
+          gap-3
+          border-b
+          border-slate-200
+          bg-white
+          px-4
+          py-2
+          md:px-6
+        ">
+
+          {/* Mobile Menu Button */}
 
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl
-                       text-ems-muted hover:text-white hover:bg-ems-card
-                       border border-ems-border transition-all"
+            className="
+              md:hidden
+              flex
+              h-10
+              w-10
+              flex-shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              text-slate-600
+              transition-colors
+              hover:border-red-200
+              hover:bg-red-50
+              hover:text-red-600
+              focus-visible:outline
+              focus-visible:outline-2
+              focus-visible:outline-red-500
+            "
             aria-label="Open menu"
           >
-            <FiMenu size={18} />
+            <FiMenu size={19} />
           </button>
 
-          <h1 className="flex-1 text-ems-white font-semibold text-base md:text-lg truncate">
+          {/* Page Title */}
+
+          <h1 className="
+            min-w-0
+            flex-1
+            truncate
+            text-base
+            font-bold
+            text-slate-900
+            md:text-lg
+          ">
             {title}
           </h1>
 
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+          {/* Header Actions */}
+
+          <div className="
+            flex
+            flex-shrink-0
+            items-center
+            gap-2
+            md:gap-4
+          ">
+
+            {/* Emergency SOS Button */}
 
             {user?.role === 'patient' && (
               <Link
                 to="/emergency"
-                className="md:hidden flex items-center gap-1.5 bg-emergency-red text-white
-                           text-xs font-bold px-3 py-2 rounded-xl
-                           active:scale-95 transition-transform"
+                className="
+                  flex
+                  items-center
+                  gap-1.5
+                  rounded-xl
+                  bg-red-600
+                  px-3
+                  py-2
+                  text-xs
+                  font-bold
+                  text-white
+                  shadow-sm
+                  transition-all
+                  hover:bg-red-700
+                  active:scale-95
+                  focus-visible:outline
+                  focus-visible:outline-2
+                  focus-visible:outline-offset-2
+                  focus-visible:outline-red-500
+                  md:hidden
+                "
               >
-                <FiAlertTriangle size={13} />
+                <FiAlertTriangle size={14} />
                 SOS
               </Link>
             )}
 
+            {/* Notification Button and Panel */}
+
             <div className="relative">
+
               <button
+                type="button"
                 onClick={togglePanel}
-                className={`relative w-9 h-9 border rounded-xl flex items-center justify-center
-                            transition-colors
-                            ${panelOpen
-                              ? 'bg-emergency-red/10 border-emergency-red/40 text-emergency-red'
-                              : 'bg-ems-card border-ems-border text-ems-muted hover:text-white'
-                            }`}
-                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+                className={`
+                  relative
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border
+                  transition-colors
+                  focus-visible:outline
+                  focus-visible:outline-2
+                  focus-visible:outline-offset-2
+                  focus-visible:outline-red-500
+                  ${
+                    panelOpen
+                      ? 'border-red-200 bg-red-50 text-red-600'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
+                  }
+                `}
+                aria-label={`Notifications${
+                  unreadCount > 0 ? ` (${unreadCount} unread)` : ''
+                }`}
+                aria-expanded={panelOpen}
               >
-                <FiBell size={16} />
+                <FiBell size={18} />
+
+                {/* Unread Notification Counter */}
 
                 {unreadCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5
-                               bg-emergency-red text-white text-[9px] font-bold
-                               rounded-full flex items-center justify-center
-                               border border-ems-dark animate-pulse"
-                  >
+                  <span className="
+                    absolute
+                    -right-1
+                    -top-1
+                    flex
+                    h-4
+                    min-w-4
+                    items-center
+                    justify-center
+                    rounded-full
+                    border-2
+                    border-white
+                    bg-red-600
+                    px-1
+                    text-[9px]
+                    font-bold
+                    leading-none
+                    text-white
+                  ">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
+
+              {/* Notification Panel */}
 
               {panelOpen && (
                 <NotificationPanel
@@ -100,19 +266,53 @@ export default function DashboardLayout({ children, title = '' }) {
                   onRefresh={refresh}
                 />
               )}
+
             </div>
 
-            <div className="hidden sm:block text-right">
-              <p className="text-ems-white text-sm font-medium leading-tight">
+            {/* User Information */}
+
+            <div className="hidden text-right sm:block">
+
+              <p className="
+                text-sm
+                font-semibold
+                leading-tight
+                text-slate-900
+              ">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-ems-muted text-xs capitalize">{user?.role}</p>
+
+              <p className="
+                mt-0.5
+                text-xs
+                capitalize
+                text-slate-500
+              ">
+                {user?.role}
+              </p>
+
             </div>
 
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* ====================================================
+            MAIN DASHBOARD CONTENT
+        ==================================================== */}
+
+        <main
+          id="dashboard-content"
+          className="
+            min-w-0
+            flex-1
+            overflow-x-hidden
+            overflow-y-auto
+            bg-slate-50
+            p-4
+            text-slate-800
+            md:p-6
+          "
+        >
           {children}
         </main>
 
