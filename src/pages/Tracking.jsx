@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 import { emergencyService } from '../services/emergencyService';
 import { useSocket } from '../hooks/useSocket';
 import { joinEmergencyRoom } from '../services/socketService';
@@ -26,14 +28,16 @@ import {
   FiMap,
   FiUser,
   FiCheck,
-  FiWifi,
-  FiWifiOff,
   FiCopy,
   FiHospital,
   FiZap,
-  FiClock as FiTimer
+  FiTimer
 } from 'react-icons/fi';
 import Loader from '../components/Loader';
+
+// ============================================================
+// CONSTANTS
+// ============================================================
 
 const statusSteps = [
   'pending',
@@ -76,12 +80,18 @@ const ACTIVE_STATUSES = [
   'at_hospital'
 ];
 
+// ============================================================
+// HELPERS
+// ============================================================
+
 const formatDate = (date) => {
   if (!date) return 'Not available';
 
   const parsed = new Date(date);
 
-  if (Number.isNaN(parsed.getTime())) return 'Not available';
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not available';
+  }
 
   return parsed.toLocaleString('en-KE', {
     day: 'numeric',
@@ -95,28 +105,27 @@ const formatDate = (date) => {
 const getElapsedTime = (date) => {
   if (!date) return '—';
 
-  const elapsed = Math.max(0, Date.now() - new Date(date).getTime());
+  const timestamp = new Date(date).getTime();
 
-  if (!Number.isFinite(elapsed)) return '—';
+  if (!Number.isFinite(timestamp)) return '—';
 
+  const elapsed = Math.max(0, Date.now() - timestamp);
   const seconds = Math.floor(elapsed / 1000);
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
 
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes}m ${remainingSeconds}s`;
-  }
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
 
   return `${remainingSeconds}s`;
 };
 
 const getInitials = (firstName, lastName) => {
-  return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'EM';
+  return (
+    `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() ||
+    'EM'
+  );
 };
 
 const getMapUrl = (location) => {
@@ -125,10 +134,12 @@ const getMapUrl = (location) => {
   const { latitude, longitude, coordinates, address } = location;
 
   if (
-    Number.isFinite(Number(latitude)) &&
-    Number.isFinite(Number(longitude)) &&
     latitude !== null &&
-    longitude !== null
+    latitude !== undefined &&
+    longitude !== null &&
+    longitude !== undefined &&
+    Number.isFinite(Number(latitude)) &&
+    Number.isFinite(Number(longitude))
   ) {
     return `https://www.google.com/maps?q=${latitude},${longitude}`;
   }
@@ -136,7 +147,7 @@ const getMapUrl = (location) => {
   if (
     Array.isArray(coordinates) &&
     coordinates.length >= 2 &&
-    coordinates.every(value => Number.isFinite(Number(value)))
+    coordinates.every((value) => Number.isFinite(Number(value)))
   ) {
     return `https://www.google.com/maps?q=${coordinates[1]},${coordinates[0]}`;
   }
@@ -148,7 +159,17 @@ const getMapUrl = (location) => {
   return null;
 };
 
-function StatCard({ icon: Icon, label, value, description, accent = 'red' }) {
+// ============================================================
+// REUSABLE COMPONENTS
+// ============================================================
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  description,
+  accent = 'red'
+}) {
   const accents = {
     red: 'text-emergency-red bg-emergency-red/10',
     green: 'text-green-400 bg-green-500/10',
@@ -162,7 +183,10 @@ function StatCard({ icon: Icon, label, value, description, accent = 'red' }) {
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accents[accent]}`}>
           <Icon size={19} />
         </div>
-        <span className="text-xs text-ems-muted font-medium">{label}</span>
+
+        <span className="text-xs text-ems-muted font-medium">
+          {label}
+        </span>
       </div>
 
       <p className="text-2xl font-display text-ems-white font-bold truncate">
@@ -185,104 +209,353 @@ function SectionHeading({ icon: Icon, title, subtitle }) {
 
       <div>
         <h3 className="text-ems-white font-semibold">{title}</h3>
+
         {subtitle && (
-          <p className="text-xs text-ems-muted mt-0.5">{subtitle}</p>
+          <p className="text-xs text-ems-muted mt-0.5">
+            {subtitle}
+          </p>
         )}
       </div>
     </div>
   );
 }
 
+// ============================================================
+// ADMIN EMERGENCY LIST
+// ============================================================
+
+function AdminEmergencyList({
+  emergencies,
+  refreshing,
+  onRefresh
+}) {
+  const activeCount = emergencies.filter((item) =>
+    ACTIVE_STATUSES.includes(item.status)
+  ).length;
+
+  const completedCount = emergencies.filter(
+    (item) => item.status === 'completed'
+  ).length;
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 pb-10">
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-emergency-red animate-pulse" />
+
+            <span className="text-xs font-bold tracking-widest uppercase text-emergency-red">
+              Emergency Command Centre
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-display text-ems-white">
+            Emergency Tracking
+          </h1>
+
+          <p className="text-sm text-ems-muted mt-2">
+            Select an emergency to view its tracking information.
+          </p>
+        </div>
+
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="btn-ghost flex items-center justify-center gap-2 px-4 py-2 text-sm disabled:opacity-50"
+        >
+          <FiRefreshCw
+            size={14}
+            className={refreshing ? 'animate-spin' : ''}
+          />
+          Refresh
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          icon={FiActivity}
+          label="Total Loaded"
+          value={emergencies.length}
+          description="Records returned by the server"
+          accent="blue"
+        />
+
+        <StatCard
+          icon={FiTruck}
+          label="Active"
+          value={activeCount}
+          description="Currently active emergencies"
+          accent="amber"
+        />
+
+        <StatCard
+          icon={FiCheckCircle}
+          label="Completed"
+          value={completedCount}
+          description="Completed emergencies"
+          accent="green"
+        />
+      </div>
+
+      <div className="ems-card">
+        <SectionHeading
+          icon={FiRadio}
+          title="Emergency Records"
+          subtitle="Select a record to open its tracking details"
+        />
+
+        {emergencies.length > 0 ? (
+          <div className="space-y-3">
+            {emergencies.map((item) => {
+              const itemType = EMERGENCY_TYPES.find(
+                (type) => type.value === item.type
+              );
+
+              const statusColor =
+                STATUS_COLORS[item.status] || '#ef4444';
+
+              return (
+                <div
+                  key={item._id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-ems-dark border border-ems-border hover:border-emergency-red/40 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-ems-white">
+                        {item.emergencyId || item._id}
+                      </span>
+
+                      <span
+                        className="px-2 py-1 rounded-md text-[10px] font-bold uppercase"
+                        style={{
+                          color: statusColor,
+                          backgroundColor: `${statusColor}15`
+                        }}
+                      >
+                        {statusLabels[item.status] || item.status}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-ems-muted mt-2">
+                      {itemType?.label || item.type || 'Emergency'}
+                    </p>
+
+                    <p className="text-xs text-ems-muted mt-1">
+                      {item.patientLocation?.address || 'Location unavailable'}
+                    </p>
+
+                    <p className="text-xs text-ems-muted mt-1">
+                      Reported: {formatDate(item.createdAt)}
+                    </p>
+                  </div>
+
+                  <Link
+                    to={`/tracking/${item._id}`}
+                    className="btn-emergency inline-flex items-center justify-center gap-2 px-4 py-3 text-sm flex-shrink-0"
+                  >
+                    Track Emergency
+                    <FiArrowRight size={15} />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <FiTruck
+              size={36}
+              className="mx-auto text-ems-muted mb-4"
+            />
+
+            <h3 className="text-ems-white font-semibold">
+              No emergencies found
+            </h3>
+
+            <p className="text-sm text-ems-muted mt-2">
+              No emergency records were returned by the server.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN TRACKING COMPONENT
+// ============================================================
+
 export default function Tracking() {
   const { id } = useParams();
+  const { user } = useAuth();
+
+  const isAdmin = ['admin', 'superadmin'].includes(user?.role);
 
   const [emergency, setEmergency] = useState(null);
+  const [adminEmergencies, setAdminEmergencies] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [liveStatus, setLiveStatus] = useState(null);
-  const [socketConnected, setSocketConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [elapsedTime, setElapsedTime] = useState('—');
-  const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadEmergency = async (showLoader = false) => {
-    if (showLoader) setRefreshing(true);
+  // ==========================================================
+  // LOAD EMERGENCIES
+  // ==========================================================
+
+  const loadEmergency = useCallback(async (showLoader = false) => {
+    if (showLoader) {
+      setRefreshing(true);
+    }
 
     try {
-      if (id) {
-        const { data } = await emergencyService.getById(id);
+      if (isAdmin && !id) {
+        // Admin: retrieve emergency records
+        const { data } =
+          await emergencyService.getAllAdminEmergencies({
+            limit: 50,
+            page: 1
+          });
+
+        setAdminEmergencies(data.emergencies || []);
+        setEmergency(null);
+        setLiveStatus(null);
+      } else if (isAdmin && id) {
+        // Admin: retrieve one emergency
+        const { data } =
+          await emergencyService.getAdminEmergency(id);
 
         const result = data.emergency;
 
-        setEmergency(result);
-        setLiveStatus(result.status);
-        joinEmergencyRoom(id);
+        setEmergency(result || null);
+        setLiveStatus(result?.status || null);
+
+        if (result?._id) {
+          joinEmergencyRoom(result._id);
+        }
+      } else if (id) {
+        // Patient: retrieve one emergency
+        const { data } =
+          await emergencyService.getById(id);
+
+        const result = data.emergency;
+
+        setEmergency(result || null);
+        setLiveStatus(result?.status || null);
+
+        if (result?._id) {
+          joinEmergencyRoom(result._id);
+        }
       } else {
-        const { data } = await emergencyService.getMyEmergencies({
-          limit: 5
-        });
+        // Patient: retrieve their own emergencies
+        const { data } =
+          await emergencyService.getMyEmergencies({
+            limit: 5
+          });
 
         const emergencies = data.emergencies || [];
 
-        const active = emergencies.find(e =>
-          ACTIVE_STATUSES.includes(e.status)
+        const active = emergencies.find((item) =>
+          ACTIVE_STATUSES.includes(item.status)
         );
 
         const latest = active || emergencies[0] || null;
 
         setEmergency(latest);
+        setLiveStatus(latest?.status || null);
 
-        if (latest) {
-          setLiveStatus(latest.status);
+        if (latest?._id) {
           joinEmergencyRoom(latest._id);
-        } else {
-          setLiveStatus(null);
         }
       }
 
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Failed to load emergency:', error);
+      console.error(
+        'Failed to load emergency:',
+        error.response?.data || error.message
+      );
+
+      setEmergency(null);
+      setAdminEmergencies([]);
+      setLiveStatus(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [id, isAdmin]);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
+      setLoading(true);
+
       try {
-        if (id) {
-          const { data } = await emergencyService.getById(id);
+        if (isAdmin && !id) {
+          const { data } =
+            await emergencyService.getAllAdminEmergencies({
+              limit: 50,
+              page: 1
+            });
+
+          if (!mounted) return;
+
+          setAdminEmergencies(data.emergencies || []);
+          setEmergency(null);
+          setLiveStatus(null);
+        } else if (isAdmin && id) {
+          const { data } =
+            await emergencyService.getAdminEmergency(id);
 
           if (!mounted) return;
 
           const result = data.emergency;
 
-          setEmergency(result);
-          setLiveStatus(result.status);
-          joinEmergencyRoom(id);
+          setEmergency(result || null);
+          setLiveStatus(result?.status || null);
+
+          if (result?._id) {
+            joinEmergencyRoom(result._id);
+          }
+        } else if (id) {
+          const { data } =
+            await emergencyService.getById(id);
+
+          if (!mounted) return;
+
+          const result = data.emergency;
+
+          setEmergency(result || null);
+          setLiveStatus(result?.status || null);
+
+          if (result?._id) {
+            joinEmergencyRoom(result._id);
+          }
         } else {
-          const { data } = await emergencyService.getMyEmergencies({
-            limit: 5
-          });
+          const { data } =
+            await emergencyService.getMyEmergencies({
+              limit: 5
+            });
 
           if (!mounted) return;
 
           const emergencies = data.emergencies || [];
 
-          const active = emergencies.find(e =>
-            ACTIVE_STATUSES.includes(e.status)
+          const active = emergencies.find((item) =>
+            ACTIVE_STATUSES.includes(item.status)
           );
 
           const latest = active || emergencies[0] || null;
 
           setEmergency(latest);
+          setLiveStatus(latest?.status || null);
 
-          if (latest) {
-            setLiveStatus(latest.status);
+          if (latest?._id) {
             joinEmergencyRoom(latest._id);
           }
         }
@@ -291,9 +564,20 @@ export default function Tracking() {
           setLastUpdated(new Date());
         }
       } catch (error) {
-        console.error('Failed to load emergency:', error);
+        console.error(
+          'Failed to load emergency:',
+          error.response?.data || error.message
+        );
+
+        if (mounted) {
+          setEmergency(null);
+          setAdminEmergencies([]);
+          setLiveStatus(null);
+        }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -302,41 +586,52 @@ export default function Tracking() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, isAdmin]);
 
-  useSocket('status_update', (data) => {
-    if (!data?.status) return;
+  // ==========================================================
+  // REAL-TIME STATUS UPDATES
+  // ==========================================================
 
-    setLiveStatus(data.status);
+  useSocket(
+    'status_update',
+    (data) => {
+      if (!data?.status) return;
 
-    setEmergency(prev => {
-      if (!prev) return prev;
+      setEmergency((previous) => {
+        if (!previous) return previous;
 
-      if (
-        data.emergencyId &&
-        data.emergencyId !== prev.emergencyId &&
-        data.emergencyId !== prev._id
-      ) {
-        return prev;
-      }
+        if (
+          data.emergencyId &&
+          data.emergencyId !== previous.emergencyId &&
+          data.emergencyId !== previous._id
+        ) {
+          return previous;
+        }
 
-      return {
-        ...prev,
-        status: data.status,
-        timeline: [
-          ...(prev.timeline || []).filter(
-            item => item.status !== data.status
-          ),
-          {
-            status: data.status,
-            timestamp: new Date()
-          }
-        ]
-      };
-    });
+        setLiveStatus(data.status);
+        setLastUpdated(new Date());
 
-    setLastUpdated(new Date());
-  }, []);
+        return {
+          ...previous,
+          status: data.status,
+          timeline: [
+            ...(previous.timeline || []).filter(
+              (item) => item.status !== data.status
+            ),
+            {
+              status: data.status,
+              timestamp: new Date()
+            }
+          ]
+        };
+      });
+    },
+    []
+  );
+
+  // ==========================================================
+  // ELAPSED TIME
+  // ==========================================================
 
   useEffect(() => {
     const updateElapsed = () => {
@@ -352,13 +647,36 @@ export default function Tracking() {
     return () => clearInterval(interval);
   }, [emergency?.createdAt]);
 
+  // ==========================================================
+  // COPY REFERENCE
+  // ==========================================================
+
+  const handleCopyReference = async () => {
+    const reference = emergency?.emergencyId || emergency?._id;
+
+    if (!reference) return;
+
+    try {
+      await navigator.clipboard.writeText(reference);
+      setCopied(true);
+
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      console.error('Unable to copy emergency reference.');
+    }
+  };
+
+  // ==========================================================
+  // DERIVED VALUES
+  // ==========================================================
+
   const currentStatus =
     liveStatus || emergency?.status || 'pending';
 
   const currentStepIdx = statusSteps.indexOf(currentStatus);
 
   const typeInfo = EMERGENCY_TYPES.find(
-    type => type.value === emergency?.type
+    (type) => type.value === emergency?.type
   );
 
   const isActive = ACTIVE_STATUSES.includes(currentStatus);
@@ -370,33 +688,49 @@ export default function Tracking() {
     : isCancelled
       ? 0
       : currentStepIdx >= 0
-        ? Math.round(((currentStepIdx + 1) / statusSteps.length) * 100)
+        ? Math.round(
+            ((currentStepIdx + 1) / statusSteps.length) * 100
+          )
         : 0;
 
   const patientMapUrl = getMapUrl(emergency?.patientLocation);
 
-  const handleCopyReference = async () => {
-    if (!emergency?.emergencyId) return;
-
-    try {
-      await navigator.clipboard.writeText(emergency.emergencyId);
-      setCopied(true);
-
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      console.error('Unable to copy emergency reference.');
-    }
-  };
+  // ==========================================================
+  // LOADING
+  // ==========================================================
 
   if (loading) {
     return (
       <DashboardLayout title="Live Tracking">
         <div className="flex justify-center py-24">
-          <Loader size="lg" text="Connecting to emergency services..." />
+          <Loader
+            size="lg"
+            text="Connecting to emergency services..."
+          />
         </div>
       </DashboardLayout>
     );
   }
+
+  // ==========================================================
+  // ADMIN: ALL EMERGENCIES
+  // ==========================================================
+
+  if (isAdmin && !id) {
+    return (
+      <DashboardLayout title="Live Tracking">
+        <AdminEmergencyList
+          emergencies={adminEmergencies}
+          refreshing={refreshing}
+          onRefresh={() => loadEmergency(true)}
+        />
+      </DashboardLayout>
+    );
+  }
+
+  // ==========================================================
+  // NO EMERGENCY FOUND
+  // ==========================================================
 
   if (!emergency) {
     return (
@@ -412,33 +746,45 @@ export default function Tracking() {
             </h2>
 
             <p className="text-ems-muted mt-3 text-sm leading-relaxed">
-              You currently have no active or recent emergency requests.
-              When you request assistance, your response information will
-              appear here.
+              {isAdmin
+                ? 'The requested emergency could not be found or loaded.'
+                : 'You currently have no active or recent emergency requests. When you request assistance, your response information will appear here.'}
             </p>
           </div>
 
-          <Link
-            to="/emergency"
-            className="btn-emergency inline-flex items-center gap-3 py-4 px-8"
-          >
-            Request Emergency
-            <FiArrowRight />
-          </Link>
+          {isAdmin ? (
+            <Link
+              to="/tracking"
+              className="btn-ghost inline-flex items-center gap-3 py-4 px-8"
+            >
+              Back to Emergencies
+              <FiArrowRight />
+            </Link>
+          ) : (
+            <Link
+              to="/emergency"
+              className="btn-emergency inline-flex items-center gap-3 py-4 px-8"
+            >
+              Request Emergency
+              <FiArrowRight />
+            </Link>
+          )}
         </div>
       </DashboardLayout>
     );
   }
 
+  // ==========================================================
+  // SINGLE EMERGENCY TRACKING VIEW
+  // ==========================================================
+
   return (
     <DashboardLayout title="Live Tracking">
-
       <div className="max-w-6xl mx-auto space-y-6 pb-10">
 
         {/* TOP BAR */}
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-emergency-red animate-pulse" />
@@ -453,17 +799,28 @@ export default function Tracking() {
             </h1>
 
             <p className="text-ems-muted text-sm mt-1">
-              Monitor your emergency response in real time.
+              {isAdmin
+                ? 'Monitor emergency response information.'
+                : 'Monitor your emergency response in real time.'}
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            {isAdmin && (
+              <Link
+                to="/tracking"
+                className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm"
+              >
+                <FiArrowRight className="rotate-180" size={14} />
+                All Emergencies
+              </Link>
+            )}
 
             <div className="flex items-center gap-2 bg-ems-dark border border-ems-border rounded-xl px-3 py-2">
               <FiRadio className="text-green-400" size={15} />
 
               <span className="text-xs text-ems-muted">
-                Tracking enabled
+                Status monitoring
               </span>
             </div>
 
@@ -476,7 +833,6 @@ export default function Tracking() {
                 size={14}
                 className={refreshing ? 'animate-spin' : ''}
               />
-
               Refresh
             </button>
           </div>
@@ -485,13 +841,10 @@ export default function Tracking() {
         {/* STATUS BANNER */}
 
         <div className="ems-card relative overflow-hidden border-emergency-red/30 bg-gradient-to-br from-emergency-red/10 via-transparent to-transparent">
-
           <div className="absolute right-0 top-0 w-64 h-64 bg-emergency-red/5 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-
             <div className="flex items-start gap-4">
-
               <div className="w-14 h-14 rounded-2xl bg-emergency-red/15 flex items-center justify-center flex-shrink-0">
                 {isCompleted ? (
                   <FiCheckCircle size={27} className="text-green-400" />
@@ -535,7 +888,6 @@ export default function Tracking() {
             </div>
 
             <div className="lg:text-right">
-
               <p className="text-xs text-ems-muted mb-2">
                 Emergency Reference
               </p>
@@ -546,6 +898,7 @@ export default function Tracking() {
                 title="Copy emergency reference"
               >
                 {emergency.emergencyId || emergency._id}
+
                 {copied ? (
                   <FiCheck size={15} className="text-green-400" />
                 ) : (
@@ -557,14 +910,12 @@ export default function Tracking() {
                 {copied ? 'Reference copied' : 'Click to copy reference'}
               </p>
             </div>
-
           </div>
         </div>
 
         {/* STATISTICS */}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
           <StatCard
             icon={FiTimer}
             label="Elapsed Time"
@@ -596,7 +947,6 @@ export default function Tracking() {
             description="Current emergency classification"
             accent={isActive ? 'amber' : 'green'}
           />
-
         </div>
 
         {/* MAIN CONTENT */}
@@ -607,14 +957,13 @@ export default function Tracking() {
 
           <div className="lg:col-span-2 space-y-6">
 
-            {/* RESPONSE PROGRESS */}
+            {/* RESPONSE JOURNEY */}
 
             <div className="ems-card">
-
               <SectionHeading
                 icon={FiActivity}
                 title="Response Journey"
-                subtitle="Track each stage of your emergency response"
+                subtitle="Track each stage of the emergency response"
               />
 
               <div className="flex items-center justify-between mb-3">
@@ -635,41 +984,33 @@ export default function Tracking() {
               </div>
 
               <div className="space-y-0">
-
-                {statusSteps.map((step, idx) => {
-
+                {statusSteps.map((step, index) => {
                   const timelineEntry = emergency.timeline?.find(
-                    item => item.status === step
+                    (item) => item.status === step
                   );
 
                   const done =
                     isCompleted ||
-                    (currentStepIdx >= 0 && idx < currentStepIdx);
+                    (currentStepIdx >= 0 && index < currentStepIdx);
 
                   const active =
                     !isCompleted &&
                     !isCancelled &&
-                    idx === currentStepIdx;
+                    index === currentStepIdx;
 
-                  const upcoming =
-                    !done && !active;
+                  const upcoming = !done && !active;
 
                   return (
-                    <div
-                      key={step}
-                      className="flex gap-4 relative"
-                    >
-
+                    <div key={step} className="flex gap-4 relative">
                       <div className="flex flex-col items-center">
-
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center z-10 flex-shrink-0 transition-all
-                            ${done
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center z-10 flex-shrink-0 transition-all ${
+                            done
                               ? 'bg-green-500/15 text-green-400'
                               : active
                                 ? 'bg-emergency-red text-white shadow-lg shadow-emergency-red/20'
                                 : 'bg-ems-dark border border-ems-border text-ems-muted'
-                            }`}
+                          }`}
                         >
                           {done ? (
                             <FiCheck size={17} />
@@ -677,27 +1018,22 @@ export default function Tracking() {
                             <span className="w-3 h-3 bg-white rounded-full animate-pulse" />
                           ) : (
                             <span className="text-xs font-semibold">
-                              {idx + 1}
+                              {index + 1}
                             </span>
                           )}
                         </div>
 
-                        {idx !== statusSteps.length - 1 && (
+                        {index !== statusSteps.length - 1 && (
                           <div
                             className={`w-0.5 h-12 ${
-                              done
-                                ? 'bg-green-500/40'
-                                : 'bg-ems-border'
+                              done ? 'bg-green-500/40' : 'bg-ems-border'
                             }`}
                           />
                         )}
-
                       </div>
 
                       <div className="flex-1 pb-8">
-
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-
                           <p
                             className={`text-sm font-semibold ${
                               active
@@ -721,21 +1057,16 @@ export default function Tracking() {
                               {timeAgo(timelineEntry.timestamp)}
                             </span>
                           )}
-
                         </div>
 
                         <p
                           className={`text-xs mt-1 ${
-                            upcoming
-                              ? 'text-ems-muted/50'
-                              : 'text-ems-muted'
+                            upcoming ? 'text-ems-muted/50' : 'text-ems-muted'
                           }`}
                         >
                           {statusDescriptions[step]}
                         </p>
-
                       </div>
-
                     </div>
                   );
                 })}
@@ -748,12 +1079,12 @@ export default function Tracking() {
                         Emergency Cancelled
                       </span>
                     </div>
+
                     <p className="text-xs text-ems-muted mt-2">
                       This request is no longer active.
                     </p>
                   </div>
                 )}
-
               </div>
             </div>
 
@@ -761,7 +1092,6 @@ export default function Tracking() {
 
             {emergency.patientLocation && (
               <div className="ems-card">
-
                 <SectionHeading
                   icon={FiMapPin}
                   title="Patient Location"
@@ -769,15 +1099,12 @@ export default function Tracking() {
                 />
 
                 <div className="p-4 rounded-xl bg-ems-dark border border-ems-border">
-
                   <div className="flex items-start gap-3">
-
                     <div className="w-10 h-10 rounded-xl bg-emergency-red/10 flex items-center justify-center text-emergency-red flex-shrink-0">
                       <FiMapPin size={18} />
                     </div>
 
                     <div className="flex-1 min-w-0">
-
                       <p className="text-sm font-semibold text-ems-white">
                         {emergency.patientLocation.address ||
                           'Address not provided'}
@@ -801,9 +1128,7 @@ export default function Tracking() {
                           </span>
                         </div>
                       )}
-
                     </div>
-
                   </div>
 
                   {patientMapUrl && (
@@ -818,7 +1143,6 @@ export default function Tracking() {
                       <FiExternalLink size={13} />
                     </a>
                   )}
-
                 </div>
               </div>
             )}
@@ -827,7 +1151,6 @@ export default function Tracking() {
 
             {emergency.hospital && (
               <div className="ems-card">
-
                 <SectionHeading
                   icon={FiHospital}
                   title="Destination Hospital"
@@ -835,7 +1158,6 @@ export default function Tracking() {
                 />
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
                     <FiHeart size={25} />
                   </div>
@@ -851,7 +1173,6 @@ export default function Tracking() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-
                     {emergency.hospital.phone && (
                       <a
                         href={`tel:${emergency.hospital.phone}`}
@@ -873,9 +1194,7 @@ export default function Tracking() {
                         Directions
                       </a>
                     )}
-
                   </div>
-
                 </div>
               </div>
             )}
@@ -883,7 +1202,6 @@ export default function Tracking() {
             {/* ACTIVITY FEED */}
 
             <div className="ems-card">
-
               <SectionHeading
                 icon={FiClock}
                 title="Emergency Activity"
@@ -891,26 +1209,22 @@ export default function Tracking() {
               />
 
               {emergency.timeline?.length > 0 ? (
-
                 <div className="space-y-4">
-
                   {[...emergency.timeline]
-                    .sort((a, b) =>
-                      new Date(b.timestamp) - new Date(a.timestamp)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.timestamp) - new Date(a.timestamp)
                     )
                     .map((item, index) => (
-
                       <div
                         key={`${item.status}-${item.timestamp}-${index}`}
                         className="flex gap-3 items-start"
                       >
-
                         <div className="w-8 h-8 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center flex-shrink-0">
                           <FiCheckCircle size={16} />
                         </div>
 
                         <div className="flex-1 border-b border-ems-border pb-4 last:border-0">
-
                           <p className="text-sm font-medium text-ems-white">
                             {statusLabels[item.status] || item.status}
                           </p>
@@ -918,17 +1232,11 @@ export default function Tracking() {
                           <p className="text-xs text-ems-muted mt-1">
                             {formatDate(item.timestamp)}
                           </p>
-
                         </div>
-
                       </div>
-
                     ))}
-
                 </div>
-
               ) : (
-
                 <div className="text-center py-8">
                   <FiClock
                     size={25}
@@ -939,21 +1247,17 @@ export default function Tracking() {
                     No additional activity recorded yet.
                   </p>
                 </div>
-
               )}
-
             </div>
-
           </div>
 
-          {/* RIGHT SIDEBAR */}
+          {/* RIGHT COLUMN */}
 
           <div className="space-y-6">
 
-            {/* EMT CARD */}
+            {/* ASSIGNED RESPONDER */}
 
             <div className="ems-card">
-
               <SectionHeading
                 icon={FiUser}
                 title="Assigned Responder"
@@ -961,11 +1265,8 @@ export default function Tracking() {
               />
 
               {emergency.emt ? (
-
                 <div>
-
                   <div className="text-center pb-5 border-b border-ems-border">
-
                     <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-emergency-red to-red-900 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-emergency-red/20">
                       {getInitials(
                         emergency.emt.firstName,
@@ -982,11 +1283,9 @@ export default function Tracking() {
                       <FiShield className="inline mr-1" />
                       Assigned Emergency Responder
                     </p>
-
                   </div>
 
                   <div className="space-y-4 py-5">
-
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-ems-muted">
                         Qualification
@@ -1018,7 +1317,6 @@ export default function Tracking() {
                         </span>
                       </div>
                     )}
-
                   </div>
 
                   {emergency.emt.phone && (
@@ -1030,13 +1328,9 @@ export default function Tracking() {
                       Call Emergency Responder
                     </a>
                   )}
-
                 </div>
-
               ) : (
-
                 <div className="text-center py-8">
-
                   <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4">
                     <FiTruck size={28} />
                   </div>
@@ -1054,17 +1348,13 @@ export default function Tracking() {
                     <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
                     Awaiting assignment
                   </div>
-
                 </div>
-
               )}
-
             </div>
 
             {/* EMERGENCY DETAILS */}
 
             <div className="ems-card">
-
               <SectionHeading
                 icon={FiHash}
                 title="Emergency Details"
@@ -1072,7 +1362,6 @@ export default function Tracking() {
               />
 
               <div className="space-y-4">
-
                 <div>
                   <p className="text-xs text-ems-muted mb-1">
                     Reference Number
@@ -1121,22 +1410,22 @@ export default function Tracking() {
                   <span
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
                     style={{
-                      backgroundColor: `${STATUS_COLORS[currentStatus] || '#ef4444'}15`,
-                      color: STATUS_COLORS[currentStatus] || '#ef4444'
+                      backgroundColor: `${
+                        STATUS_COLORS[currentStatus] || '#ef4444'
+                      }15`,
+                      color:
+                        STATUS_COLORS[currentStatus] || '#ef4444'
                     }}
                   >
                     {statusLabels[currentStatus] || currentStatus}
                   </span>
                 </div>
-
               </div>
-
             </div>
 
             {/* EMERGENCY CONTACTS */}
 
             <div className="ems-card border-emergency-red/30 bg-emergency-red/5">
-
               <SectionHeading
                 icon={FiZap}
                 title="Emergency Assistance"
@@ -1144,12 +1433,11 @@ export default function Tracking() {
               />
 
               <p className="text-xs text-ems-muted leading-relaxed mb-5">
-                If you need immediate assistance, contact our emergency
+                If you need immediate assistance, contact the emergency
                 response team directly.
               </p>
 
               <div className="space-y-3">
-
                 <a
                   href="tel:1514"
                   className="btn-emergency w-full flex items-center justify-center gap-2 py-3"
@@ -1165,7 +1453,6 @@ export default function Tracking() {
                   <FiPhone size={16} />
                   0700 395 395
                 </a>
-
               </div>
 
               <div className="mt-5 pt-4 border-t border-emergency-red/20">
@@ -1173,17 +1460,13 @@ export default function Tracking() {
                   Keep your emergency reference available when calling.
                 </p>
               </div>
-
             </div>
-
           </div>
-
         </div>
 
-        {/* FOOTER INFORMATION */}
+        {/* FOOTER */}
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-ems-border bg-ems-dark/50">
-
           <div className="flex items-center gap-2 text-xs text-ems-muted">
             <FiShield className="text-green-400" size={15} />
             Emergency tracking information
@@ -1193,11 +1476,8 @@ export default function Tracking() {
             <FiClock size={14} />
             Last synchronized: {lastUpdated.toLocaleTimeString('en-KE')}
           </div>
-
         </div>
-
       </div>
-
     </DashboardLayout>
   );
 }

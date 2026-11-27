@@ -19,6 +19,7 @@ const patientLinks = [
 const adminLinks = [
   { to: '/admin',               icon: FiBarChart2,    label: 'Dashboard' },
   { to: '/admin/emergencies',   icon: FiAlertTriangle,label: 'Emergencies' },
+  { to: '/tracking',            icon: FiMapPin,        label: 'Live Tracking' },
   { to: '/admin/users',         icon: FiUsers,        label: 'Users' },
   { to: '/admin/fleet',         icon: FiTruck,        label: 'Fleet' },
   { to: '/admin/hospitals',     icon: FiActivity,     label: 'Hospitals' },
