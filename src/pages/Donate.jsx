@@ -18,29 +18,17 @@ import {
 
 import { FaMobileAlt } from "react-icons/fa";
 
-/*
-|--------------------------------------------------------------------------
-| API
-|--------------------------------------------------------------------------
-*/
-
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   "http://localhost:5000/api";
 
-/*
-|--------------------------------------------------------------------------
-| PAYMENT INFORMATION
-|--------------------------------------------------------------------------
-|
-| These are display/reference details.
-| Actual production credentials MUST remain in the backend .env.
-|
-*/
-
 const MPESA_DETAILS = {
   paybill: "522522",
   account: "1296571637",
+};
+
+const MPESA_SENDMONEY = {
+  SendMoney: "0757751980",
 };
 
 const KCB_DETAILS = {
@@ -54,12 +42,6 @@ const AIRTEL_DETAILS = {
   instructions:
     "Enter your Airtel Money number and follow the payment instructions.",
 };
-
-/*
-|--------------------------------------------------------------------------
-| PAYMENT METHODS
-|--------------------------------------------------------------------------
-*/
 
 const PAYMENT_METHODS = {
   mpesa: {
@@ -79,11 +61,6 @@ const PAYMENT_METHODS = {
 };
 
 export default function Donate() {
-  /*
-  |--------------------------------------------------------------------------
-  | STATE
-  |--------------------------------------------------------------------------
-  */
 
   const [amount, setAmount] = useState(500);
   const [customAmount, setCustomAmount] = useState("");
@@ -113,22 +90,10 @@ export default function Donate() {
       phone: "",
     });
 
-  /*
-  |--------------------------------------------------------------------------
-  | DONATION AMOUNT
-  |--------------------------------------------------------------------------
-  */
-
   const donationAmount =
     amount === "custom"
       ? Number(customAmount) || 0
       : Number(amount);
-
-  /*
-  |--------------------------------------------------------------------------
-  | FORM CHANGE
-  |--------------------------------------------------------------------------
-  */
 
   const handleChange = (event) => {
     const {
@@ -145,12 +110,6 @@ export default function Donate() {
       setError("");
     }
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | VALIDATE
-  |--------------------------------------------------------------------------
-  */
 
   const validateForm = () => {
     if (
@@ -183,16 +142,6 @@ export default function Donate() {
       return false;
     }
 
-    /*
-    * Basic Kenyan phone validation.
-    *
-    * Accepts:
-    * 0712345678
-    * 0112345678
-    * 254712345678
-    * +254712345678
-    */
-
     const cleanedPhone =
       formData.phone
         .trim()
@@ -205,7 +154,7 @@ export default function Donate() {
 
     if (!validPhone) {
       setError(
-        "Please enter a valid Kenyan phone number, for example 0712345678."
+        "Please enter a valid phone number."
       );
 
       return false;
@@ -215,12 +164,6 @@ export default function Donate() {
 
     return true;
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | M-PESA STATUS POLLING
-  |--------------------------------------------------------------------------
-  */
 
   const pollMpesaStatus = async (
     checkoutRequestId
@@ -241,14 +184,6 @@ export default function Donate() {
 
         const data =
           await response.json();
-
-        /*
-        * A temporary 404 should not immediately
-        * destroy the payment flow.
-        *
-        * The backend may not have saved the
-        * callback yet.
-        */
 
         if (response.ok && data.success) {
           if (data.donation) {
@@ -312,12 +247,6 @@ export default function Donate() {
     checkStatus();
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | SUBMIT DONATION
-  |--------------------------------------------------------------------------
-  */
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -330,12 +259,6 @@ export default function Donate() {
     setDonation(null);
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | M-PESA
-      |--------------------------------------------------------------------------
-      */
-
       if (paymentMethod === "mpesa") {
         const response = await fetch(
           `${API_BASE}/donations/mpesa/stkpush`,
@@ -392,11 +315,6 @@ export default function Donate() {
           }
         );
 
-        /*
-        * Safaricom returns a CheckoutRequestID.
-        * We use it to monitor the donation.
-        */
-
         if (
           data.checkoutRequestId
         ) {
@@ -409,12 +327,6 @@ export default function Donate() {
           return;
         }
 
-        /*
-        * If the backend does not return a
-        * CheckoutRequestID, don't falsely
-        * claim success.
-        */
-
         setStatus("waiting");
 
         setError(
@@ -423,12 +335,6 @@ export default function Donate() {
 
         return;
       }
-
-      /*
-      |--------------------------------------------------------------------------
-      | KCB
-      |--------------------------------------------------------------------------
-      */
 
       if (paymentMethod === "kcb") {
         const response = await fetch(
@@ -486,11 +392,6 @@ export default function Donate() {
           }
         );
 
-        /*
-        * KCB may return processing until
-        * the payment notification arrives.
-        */
-
         if (
           data.status ===
           "completed"
@@ -502,12 +403,6 @@ export default function Donate() {
 
         return;
       }
-
-      /*
-      |--------------------------------------------------------------------------
-      | AIRTEL MONEY
-      |--------------------------------------------------------------------------
-      */
 
       if (paymentMethod === "airtel") {
         const response = await fetch(
@@ -595,12 +490,6 @@ export default function Donate() {
     }
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | RESET
-  |--------------------------------------------------------------------------
-  */
-
   const resetDonation = () => {
     setAmount(500);
     setCustomAmount("");
@@ -626,12 +515,6 @@ export default function Donate() {
     });
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | SELECTED PAYMENT
-  |--------------------------------------------------------------------------
-  */
-
   const selectedPayment =
     PAYMENT_METHODS[
       paymentMethod
@@ -642,12 +525,6 @@ export default function Donate() {
 
   const isWaiting =
     status === "waiting";
-
-  /*
-  |--------------------------------------------------------------------------
-  | SUCCESS SCREEN
-  |--------------------------------------------------------------------------
-  */
 
   if (status === "success") {
     return (
@@ -781,12 +658,6 @@ export default function Donate() {
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | MAIN PAGE
-  |--------------------------------------------------------------------------
-  */
-
   return (
     <div className="min-h-screen bg-ems-dark">
 
@@ -846,17 +717,11 @@ export default function Donate() {
 
       </section>
 
-      {/* CONTENT */}
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* LEFT INFORMATION */}
-
           <div className="space-y-6">
-
-            {/* WHY DONATE */}
 
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
@@ -953,8 +818,6 @@ export default function Donate() {
 
             </div>
 
-            {/* M-PESA DETAILS */}
-
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
               <div className="flex items-center gap-3">
@@ -1009,8 +872,6 @@ export default function Donate() {
               </p>
 
             </div>
-
-            {/* KCB DETAILS */}
 
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
@@ -1069,8 +930,6 @@ export default function Donate() {
 
             </div>
 
-            {/* AIRTEL DETAILS */}
-
             <div className="bg-ems-card border border-ems-border rounded-2xl p-6">
 
               <div className="flex items-center gap-3">
@@ -1107,8 +966,6 @@ export default function Donate() {
             </div>
 
           </div>
-
-          {/* DONATION FORM */}
 
           <div className="lg:col-span-2">
 
@@ -1244,8 +1101,6 @@ export default function Donate() {
 
               </div>
 
-              {/* PAYMENT METHODS */}
-
               <div className="mt-8">
 
                 <label className="text-white text-sm font-semibold">
@@ -1253,8 +1108,6 @@ export default function Donate() {
                 </label>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-
-                  {/* M-PESA */}
 
                   <button
                     type="button"
@@ -1292,8 +1145,6 @@ export default function Donate() {
 
                   </button>
 
-                  {/* KCB */}
-
                   <button
                     type="button"
                     onClick={() => {
@@ -1329,8 +1180,6 @@ export default function Donate() {
                     </p>
 
                   </button>
-
-                  {/* AIRTEL */}
 
                   <button
                     type="button"
@@ -1373,8 +1222,6 @@ export default function Donate() {
 
               </div>
 
-              {/* CUSTOMER INFORMATION */}
-
               <div className="mt-8">
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1415,8 +1262,6 @@ export default function Donate() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
 
-                  {/* NAME */}
-
                   <div className="relative">
 
                     <FiUser
@@ -1442,8 +1287,6 @@ export default function Donate() {
 
                   </div>
 
-                  {/* EMAIL */}
-
                   <div className="relative">
 
                     <FiMail
@@ -1466,8 +1309,6 @@ export default function Donate() {
 
                   </div>
 
-                  {/* PHONE */}
-
                   <div className="relative md:col-span-2">
 
                     <FiPhone
@@ -1484,7 +1325,7 @@ export default function Donate() {
                       onChange={
                         handleChange
                       }
-                      placeholder="07XXXXXXXX or 2547XXXXXXXX"
+                      placeholder="07XXXXXXXX or 2547XXXXXXXX or 01XXXXXXXX"
                       className="w-full bg-ems-dark border border-ems-border rounded-xl pl-11 pr-4 py-3 text-white placeholder:text-ems-muted outline-none focus:border-emergency-red"
                     />
 
@@ -1493,8 +1334,6 @@ export default function Donate() {
                 </div>
 
               </div>
-
-              {/* PAYMENT INFORMATION */}
 
               <div className="mt-8 p-5 rounded-2xl bg-ems-dark border border-ems-border">
 
@@ -1559,8 +1398,6 @@ export default function Donate() {
                       </>
                     )}
 
-                    {/* KCB */}
-
                     {paymentMethod ===
                       "kcb" && (
                       <>
@@ -1599,8 +1436,6 @@ export default function Donate() {
                       </>
                     )}
 
-                    {/* AIRTEL */}
-
                     {paymentMethod ===
                       "airtel" && (
                       <p className="text-ems-muted text-xs leading-relaxed mt-2">
@@ -1618,8 +1453,6 @@ export default function Donate() {
 
               </div>
 
-              {/* ERROR */}
-
               {error && (
                 <div className="mt-6 flex gap-3 p-4 rounded-xl bg-red-500/5 border border-red-500/20">
 
@@ -1634,8 +1467,6 @@ export default function Donate() {
 
                 </div>
               )}
-
-              {/* WAITING */}
 
               {isWaiting && (
                 <div className="mt-6 flex gap-3 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
@@ -1665,8 +1496,6 @@ export default function Donate() {
 
                 </div>
               )}
-
-              {/* SUMMARY */}
 
               <div className="mt-8 p-5 rounded-2xl bg-ems-dark border border-ems-border">
 
@@ -1768,8 +1597,6 @@ export default function Donate() {
         </div>
 
       </main>
-
-      {/* FOOTER MESSAGE */}
 
       <section className="border-t border-ems-border">
 

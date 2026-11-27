@@ -285,11 +285,7 @@ export default function Footer() {
 
         </div>
 
-        {/* =====================================================
-            BOTTOM FOOTER
-        ====================================================== */}
-
-        <div className="border-t border-ems-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="border-t border-ems-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
 
           <p className="text-ems-muted text-sm">
             © 2026 EMS Kenya. Developed by ROLEX.

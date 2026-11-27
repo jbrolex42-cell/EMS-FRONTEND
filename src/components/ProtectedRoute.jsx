@@ -6,7 +6,6 @@ export default function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Still checking auth state
   if (loading) {
     return (
       <div className="min-h-screen bg-ems-black flex items-center justify-center">
@@ -15,12 +14,10 @@ export default function ProtectedRoute({ children, roles }) {
     );
   }
 
-  // Not logged in → send to login
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Logged in but wrong role → redirect to their correct dashboard
   if (roles && !roles.includes(user.role)) {
     const roleHome = {
       admin:      '/admin',

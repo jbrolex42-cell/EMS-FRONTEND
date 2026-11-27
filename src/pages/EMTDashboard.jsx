@@ -23,8 +23,6 @@ export default function EMTDashboard() {
   const [loading, setLoading]             = useState(true);
   const [status, setStatus]               = useState(user?.status || 'available');
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  // Hospital quick-find state
   const [hospitalSearch, setHospitalSearch] = useState('');
   const [hospitalCounty, setHospitalCounty] = useState(user?.county || '');
 

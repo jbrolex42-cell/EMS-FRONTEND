@@ -1,27 +1,12 @@
-// hooks/useNotifications.js
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useSocket } from './useSocket';
-
-/**
- * Notification types per role:
- *
- * PATIENT      → emergency_dispatched, ambulance_arrived, emergency_resolved,
- *                membership_expiry, emergency_update
- *
- * EMT          → new_assignment, emergency_cancelled, emt_message
- *
- * ADMIN /      → new_emergency, new_user_registered, emt_status_changed,
- * SUPERADMIN     ambulance_location, system_alert, membership_purchase
- */
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount]   = useState(0);
   const [loading, setLoading]           = useState(false);
   const [panelOpen, setPanelOpen]       = useState(false);
-
-  // ── Fetch from backend ─────────────────────────────────────────
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
@@ -39,13 +24,11 @@ export function useNotifications() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // ── Helper: prepend a new real-time notification ───────────────
   const addNotification = useCallback((notif) => {
     setNotifications(prev => [notif, ...prev].slice(0, 50));
     setUnreadCount(prev => prev + 1);
   }, []);
 
-  // ── Socket events – patient ────────────────────────────────────
   useSocket('emergency_dispatched', (data) => {
     addNotification({
       _id: Date.now(),
@@ -90,7 +73,6 @@ export function useNotifications() {
     });
   }, [addNotification]);
 
-  // ── Socket events – EMT ────────────────────────────────────────
   useSocket('new_assignment', (data) => {
     addNotification({
       _id: Date.now(),
@@ -106,14 +88,12 @@ export function useNotifications() {
     addNotification({
       _id: Date.now(),
       type: 'emergency_cancelled',
-      title: '❌ Assignment Cancelled',
+      title: ' Assignment Cancelled',
       message: `Emergency #${data.emergencyId?.slice(-8) || ''} has been cancelled`,
       createdAt: new Date().toISOString(),
       read: false,
     });
   }, [addNotification]);
-
-  // ── Socket events – admin / superadmin ────────────────────────
   useSocket('new_emergency', (data) => {
     addNotification({
       _id: Date.now(),
@@ -169,20 +149,17 @@ export function useNotifications() {
     });
   }, [addNotification]);
 
-  // ── Mark all as read ───────────────────────────────────────────
-  const markAllRead = useCallback(async () => {
+    const markAllRead = useCallback(async () => {
     try {
       await api.patch('/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {
-      // Optimistic update still reflected in UI
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     }
   }, []);
 
-  // ── Mark single as read ────────────────────────────────────────
   const markRead = useCallback(async (id) => {
     try {
       await api.patch(`/notifications/${id}/read`);
@@ -193,7 +170,6 @@ export function useNotifications() {
     setUnreadCount(prev => Math.max(0, prev - 1));
   }, []);
 
-  // ── Clear all ──────────────────────────────────────────────────
   const clearAll = useCallback(async () => {
     try {
       await api.delete('/notifications/clear');
@@ -204,7 +180,6 @@ export function useNotifications() {
 
   const togglePanel = useCallback(() => {
     setPanelOpen(prev => {
-      // auto-mark read when opening
       if (!prev && unreadCount > 0) markAllRead();
       return !prev;
     });

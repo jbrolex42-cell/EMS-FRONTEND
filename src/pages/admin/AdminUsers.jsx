@@ -35,7 +35,6 @@ export default function AdminUsers() {
   };
 
   const toggleActive = async (userId, currentState, userRole) => {
-    // Only superadmins can toggle admin/superadmin accounts
     if ((userRole === 'admin' || userRole === 'superadmin') && !isSuperAdmin) {
       toast.error('Only superadmins can modify admin accounts');
       return;
@@ -47,11 +46,10 @@ export default function AdminUsers() {
     } catch (e) { toast.error('Failed to update user'); }
   };
 
-  // Can this user's row be toggled by the current session?
   const canToggle = (u) => {
-    if (u._id === currentUser?._id) return false; // can't toggle self
+    if (u._id === currentUser?._id) return false;
     if (u.role === 'admin' || u.role === 'superadmin') return isSuperAdmin;
-    return true; // patients & emts: all admins can toggle
+    return true;
   };
 
   const roleBadge = (role) => {

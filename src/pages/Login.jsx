@@ -9,7 +9,7 @@ import Loader from '../components/Loader';
 export default function Login() {
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
-  const [loginMode, setLoginMode] = useState('email'); // 'email' | 'phone'
+  const [loginMode, setLoginMode] = useState('email');
 
   const { login } = useAuth();
   const navigate  = useNavigate();
@@ -26,7 +26,6 @@ export default function Login() {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Send either { email, password } or { phone, password } depending on mode
       const payload = loginMode === 'phone'
         ? { phone: data.identifier, password: data.password }
         : { email: data.identifier, password: data.password };
@@ -139,7 +138,7 @@ export default function Login() {
                   : <FiMail  className="absolute left-4 top-1/2 -translate-y-1/2 text-ems-muted" size={15} />
                 }
                 <input
-                  key={loginMode} // remount input on mode switch to clear value
+                  key={loginMode}
                   type={loginMode === 'phone' ? 'tel' : 'email'}
                   autoComplete={loginMode === 'phone' ? 'tel' : 'email'}
                   placeholder=""

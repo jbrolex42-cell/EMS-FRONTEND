@@ -15,8 +15,6 @@ import Hospitals from '../pages/Hospitals';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
 import VerifyEmail from '../pages/VerifyEmail';
-
-// Admin pages
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminEmergencies from '../pages/admin/AdminEmergencies';
 import AdminUsers from '../pages/admin/AdminUsers';
@@ -30,8 +28,6 @@ import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsOfService from '../pages/TermsOfService';
 import KMPDCCompliance from '../pages/KMPDCCompliance';
 import SHAIntegration from '../pages/SHAIntegration';
-
-// EMT pages
 import EMTDashboard from '../pages/EMTDashboard';
 import EMTDispatch from '../pages/emt/EMTDispatch';
 

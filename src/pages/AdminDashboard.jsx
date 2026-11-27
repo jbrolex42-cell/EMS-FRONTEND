@@ -65,13 +65,6 @@ export default function AdminDashboard() {
   const [newAlerts, setNewAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  /*
-   * =========================================================
-   * FETCH DASHBOARD DATA
-   * =========================================================
-   */
-
   const fetchData = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -88,28 +81,16 @@ export default function AdminDashboard() {
         api.get("/admin/donations?limit=8"),
       ]);
 
-      /*
-       * Emergency statistics
-       */
       setStats(statsRes.data || null);
 
-      /*
-       * Recent emergencies
-       */
       setRecentEmergencies(
         emergenciesRes.data?.emergencies || []
       );
 
-      /*
-       * Donation statistics
-       */
       setDonationStats(
         donationStatsRes.data?.stats || null
       );
 
-      /*
-       * Recent donations
-       */
       setRecentDonations(
         donationsRes.data?.donations || []
       );
@@ -124,22 +105,10 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  /*
-   * =========================================================
-   * INITIAL LOAD
-   * =========================================================
-   */
-
   useEffect(() => {
     fetchData();
     joinAdminRoom();
   }, [fetchData]);
-
-  /*
-   * =========================================================
-   * NEW EMERGENCY SOCKET EVENT
-   * =========================================================
-   */
 
   useSocket(
     "new_emergency",
@@ -154,12 +123,6 @@ export default function AdminDashboard() {
     []
   );
 
-  /*
-   * =========================================================
-   * DONATION SOCKET EVENT
-   * =========================================================
-   */
-
   useSocket(
     "donation_updated",
     (data) => {
@@ -168,9 +131,6 @@ export default function AdminDashboard() {
         data
       );
 
-      /*
-       * Update existing donation or add new donation
-       */
       setRecentDonations((prev) => {
         const donationId =
           data?.id ||
@@ -216,20 +176,11 @@ export default function AdminDashboard() {
           ...prev,
         ].slice(0, 8);
       });
-
-      /*
-       * Refresh dashboard totals
-       */
+      
       fetchData();
     },
     []
   );
-
-  /*
-   * =========================================================
-   * LOADING STATE
-   * =========================================================
-   */
 
   if (loading) {
     return (
@@ -241,12 +192,6 @@ export default function AdminDashboard() {
     );
   }
 
-  /*
-   * =========================================================
-   * SAFE DATA
-   * =========================================================
-   */
-
   const emergencyStats =
     stats?.stats || {};
 
@@ -255,12 +200,6 @@ export default function AdminDashboard() {
 
   const typeBreakdown =
     stats?.typeBreakdown || [];
-
-  /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
 
   return (
     <AdminLayout title="Command Center">

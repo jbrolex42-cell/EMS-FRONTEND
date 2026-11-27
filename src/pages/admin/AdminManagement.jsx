@@ -13,7 +13,6 @@ import {
 import Loader from '../../components/Loader';
 import { KENYAN_COUNTIES } from '../../utils/constants';
 
-/* ── Guard: only superadmin may see this page ─────────────────────────── */
 function AccessDenied() {
   return (
     <AdminLayout title="Admin Management">
@@ -30,7 +29,6 @@ function AccessDenied() {
   );
 }
 
-/* ── Confirm delete modal ─────────────────────────────────────────────── */
 function ConfirmModal({ admin, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -67,7 +65,6 @@ function ConfirmModal({ admin, onConfirm, onCancel }) {
   );
 }
 
-/* ── Create admin slide-over panel ───────────────────────────────────── */
 function CreateAdminPanel({ onClose, onSuccess }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -230,7 +227,6 @@ function CreateAdminPanel({ onClose, onSuccess }) {
   );
 }
 
-/* ── Main Component ──────────────────────────────────────────────────── */
 export default function AdminManagement() {
   const { user } = useAuth();
   const [admins, setAdmins] = useState([]);
@@ -239,7 +235,6 @@ export default function AdminManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Block non-superadmins immediately
   if (user?.role !== 'superadmin') return <AccessDenied />;
 
   useEffect(() => { fetchAdmins(); }, []);

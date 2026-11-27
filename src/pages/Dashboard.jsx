@@ -14,13 +14,10 @@ import Loader from '../components/Loader';
 
 export default function Dashboard() {
   const { user } = useAuth();
-
-  // ── ALL hooks must be declared before any conditional return ──
   const [recentEmergencies, setRecentEmergencies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch if the user is actually a patient
     if (!user || user.role === 'admin' || user.role === 'superadmin' || user.role === 'emt') {
       setLoading(false);
       return;
@@ -30,8 +27,7 @@ export default function Dashboard() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
-
-  // ── Role guards AFTER all hooks ──────────────────────────────
+  
   if (user?.role === 'admin' || user?.role === 'superadmin') {
     return <Navigate to="/admin" replace />;
   }

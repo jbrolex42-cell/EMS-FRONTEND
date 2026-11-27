@@ -6,14 +6,12 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Request interceptor - attach token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ems_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Response interceptor - handle 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {

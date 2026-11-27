@@ -12,9 +12,7 @@ export default function MapView({
   const markersRef = useRef([]);
 
   useEffect(() => {
-    // Dynamically import leaflet to avoid SSR issues
     import('leaflet').then((L) => {
-      // Fix leaflet default icon
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -40,11 +38,8 @@ export default function MapView({
         }
       }
 
-      // Clear old markers
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
-
-      // Add markers
       markers.forEach((m) => {
         const icon = m.type === 'emergency'
           ? L.divIcon({
@@ -83,7 +78,6 @@ export default function MapView({
     };
   }, []);
 
-  // Update markers when they change
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     import('leaflet').then((L) => {

@@ -1,4 +1,3 @@
-// components/NotificationPanel.jsx
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -8,7 +7,6 @@ import {
 } from 'react-icons/fi';
 import { timeAgo } from '../utils/formatTime';
 
-// ── Icon + accent colour per notification type ────────────────────
 const TYPE_META = {
   new_emergency:      { icon: FiAlertTriangle, color: '#FF3B30', bg: 'bg-red-500/10',    label: 'Emergency' },
   emergency_dispatched:{ icon: FiTruck,        color: '#3B82F6', bg: 'bg-blue-500/10',   label: 'Dispatch' },
@@ -28,7 +26,6 @@ function getMeta(type) {
   return TYPE_META[type] || TYPE_META.default;
 }
 
-// ── Link destination per type ──────────────────────────────────────
 function getLink(notif, userRole) {
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   switch (notif.type) {
@@ -55,8 +52,7 @@ function getLink(notif, userRole) {
 export default function NotificationPanel({ notifications, loading, unreadCount, onClose, onMarkRead, onClearAll, onRefresh, userRole }) {
   const ref = useRef(null);
 
-  // Close on outside click
-  useEffect(() => {
+    useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) onClose();
     }
@@ -64,8 +60,7 @@ export default function NotificationPanel({ notifications, loading, unreadCount,
     return () => document.removeEventListener('mousedown', handleClick);
   }, [onClose]);
 
-  // Close on Escape
-  useEffect(() => {
+    useEffect(() => {
     function handleKey(e) {
       if (e.key === 'Escape') onClose();
     }

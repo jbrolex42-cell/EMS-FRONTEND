@@ -5,7 +5,7 @@ import { FiCheckCircle, FiXCircle, FiLoader } from 'react-icons/fi';
 
 export default function VerifyEmail() {
   const { token } = useParams();
-  const [status, setStatus] = useState('loading'); // loading | success | error
+  const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {

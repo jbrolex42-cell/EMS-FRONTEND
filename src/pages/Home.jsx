@@ -11,7 +11,6 @@ import {
 } from 'react-icons/fi';
 import { MEMBERSHIP_PLANS } from '../utils/constants';
 
-/* ── Lightbox (for gallery) ──────────────────────────────────────────── */
 function Lightbox({ post, onClose }) {
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && onClose();
@@ -42,7 +41,6 @@ function Lightbox({ post, onClose }) {
   );
 }
 
-/* ── Latest News Section ─────────────────────────────────────────────── */
 function LatestNews() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +52,6 @@ function LatestNews() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Also fetch articles to fill if news is sparse
   useEffect(() => {
     if (!loading && posts.length < 3) {
       api.get('/updates?limit=6')
@@ -125,14 +122,12 @@ function LatestNews() {
   );
 }
 
-/* ── Gallery Section (photos + videos) ──────────────────────────────── */
 function Gallery() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    // Fetch both photo and video posts
     Promise.all([
       api.get('/updates?limit=6&type=photo'),
       api.get('/updates?limit=6&type=video'),
@@ -188,9 +183,9 @@ function Gallery() {
                     <FiImage size={24} className="text-ems-muted" />
                   </div>
                 )}
-                {/* Overlay */}
+                
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {/* Video play button */}
+                
                 {item.type === 'video' && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-10 h-10 rounded-full bg-emergency-red/90 flex items-center justify-center shadow-lg shadow-emergency-red/30 group-hover:scale-110 transition-transform">
@@ -198,7 +193,7 @@ function Gallery() {
                     </div>
                   </div>
                 )}
-                {/* Title on hover */}
+              
                 <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
                   <p className="text-white text-xs font-medium line-clamp-2">{item.title}</p>
                 </div>
@@ -211,7 +206,6 @@ function Gallery() {
   );
 }
 
-/* ── Home Page ───────────────────────────────────────────────────────── */
 export default function Home() {
   const howItWorks = [
     { step: '01', title: 'Tap SOS or Call', desc: 'One tap on the app, USSD *888#, or call 0700 395 395. Works on any phone, any network.' },

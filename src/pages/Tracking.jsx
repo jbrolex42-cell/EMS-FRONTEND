@@ -20,7 +20,6 @@ const statusLabels = {
   completed:    'Completed'
 };
 
-// Statuses considered "active" — anything not yet resolved
 const ACTIVE_STATUSES = ['pending', 'dispatched', 'enroute', 'on_scene', 'transporting', 'at_hospital'];
 
 export default function Tracking() {
@@ -31,7 +30,7 @@ export default function Tracking() {
 
   useEffect(() => {
     if (id) {
-      // ── Direct link: /tracking/:id ──────────────────────────
+
       emergencyService.getById(id)
         .then(({ data }) => {
           setEmergency(data.emergency);
@@ -42,12 +41,10 @@ export default function Tracking() {
         .finally(() => setLoading(false));
 
     } else {
-      // ── No id: load the user's latest active emergency ──────
+      
       emergencyService.getMyEmergencies({ limit: 5 })
         .then(({ data }) => {
           const emergencies = data.emergencies || [];
-
-          // Prefer an in-progress emergency first, then fall back to the most recent
           const active = emergencies.find(e => ACTIVE_STATUSES.includes(e.status));
           const latest = active || emergencies[0] || null;
 
@@ -82,7 +79,7 @@ export default function Tracking() {
   return (
     <DashboardLayout title="Live Tracking">
       {!emergency ? (
-        /* ── No emergency found ───────────────────────────────── */
+
         <div className="max-w-xl mx-auto text-center py-20 space-y-6">
           <div className="text-6xl">🚑</div>
           <h2 className="text-2xl font-display text-ems-white">NO ACTIVE EMERGENCY</h2>
@@ -92,7 +89,7 @@ export default function Tracking() {
           </Link>
         </div>
       ) : (
-        /* ── Emergency found ──────────────────────────────────── */
+
         <div className="max-w-4xl mx-auto space-y-6">
 
           {/* Header card */}

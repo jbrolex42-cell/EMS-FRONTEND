@@ -18,7 +18,6 @@ const TYPE_OPTIONS = [
   { value: 'video',   label: 'Video',   icon: FiVideo,    color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/20' },
 ];
 
-/* ── Delete confirm ──────────────────────────────────────────────────── */
 function DeleteModal({ post, onConfirm, onCancel, deleting }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -53,7 +52,6 @@ function DeleteModal({ post, onConfirm, onCancel, deleting }) {
   );
 }
 
-/* ── Create / Edit Panel ─────────────────────────────────────────────── */
 function PostPanel({ editing, onClose, onSuccess }) {
   const [loading, setLoading]           = useState(false);
   const [uploading, setUploading]       = useState(false);
@@ -61,13 +59,10 @@ function PostPanel({ editing, onClose, onSuccess }) {
   const [selectedType, setSelectedType] = useState(editing?.type || 'news');
   const [mediaMode, setMediaMode]       = useState('url');
   const [preview, setPreview]           = useState(editing?.mediaUrl || '');
-  // Track the Cloudinary publicId of the currently staged upload
-  // so we can delete it from Cloudinary if the user replaces or cancels
   const [stagedPublicId, setStagedPublicId]         = useState(null);
   const [stagedResourceType, setStagedResourceType] = useState('image');
   const fileRef = useRef();
-  const xhrRef  = useRef(); // so we can abort in-flight uploads
-
+  const xhrRef  = useRef();
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
     defaultValues: editing ? {
       title:    editing.title,
@@ -80,7 +75,6 @@ function PostPanel({ editing, onClose, onSuccess }) {
   const mediaUrl = watch('mediaUrl');
   useEffect(() => { setPreview(mediaUrl); }, [mediaUrl]);
 
-  // Abort any in-flight upload and clean up on unmount
   useEffect(() => {
     return () => { xhrRef.current?.abort(); };
   }, []);
@@ -90,7 +84,6 @@ function PostPanel({ editing, onClose, onSuccess }) {
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  /* Delete a Cloudinary asset (fire-and-forget helper) */
   const deleteCloudinaryAsset = async (publicId, resourceType = 'image') => {
     if (!publicId) return;
     try {
@@ -100,10 +93,7 @@ function PostPanel({ editing, onClose, onSuccess }) {
     }
   };
 
-  /* Clear the current media (and remove from Cloudinary if it was just uploaded) */
   const handleClearMedia = async () => {
-    // Only delete from Cloudinary if it was a fresh upload in this session
-    // (not the original URL on an existing post — that gets cleaned up on post delete)
     if (stagedPublicId) {
       await deleteCloudinaryAsset(stagedPublicId, stagedResourceType);
       setStagedPublicId(null);
@@ -113,12 +103,9 @@ function PostPanel({ editing, onClose, onSuccess }) {
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  /* Upload file to backend → Cloudinary */
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // If there's already a staged upload from this session, delete it first
     if (stagedPublicId) {
       await deleteCloudinaryAsset(stagedPublicId, stagedResourceType);
       setStagedPublicId(null);
@@ -161,7 +148,6 @@ function PostPanel({ editing, onClose, onSuccess }) {
       const payload = {
         ...data,
         type: selectedType,
-        // Pass publicId & resourceType so backend can clean up old media on updates
         ...(stagedPublicId && { mediaPublicId: stagedPublicId, mediaResourceType: stagedResourceType }),
       };
 
@@ -283,7 +269,6 @@ function PostPanel({ editing, onClose, onSuccess }) {
             ) : (
               <div>
                 {uploading ? (
-                  /* Upload progress bar */
                   <div className="w-full py-6 px-4 rounded-xl border-2 border-dashed border-ems-border flex flex-col items-center gap-3">
                     <p className="text-ems-muted text-xs">Uploading to Cloudinary…</p>
                     <div className="w-full bg-ems-border rounded-full h-1.5">
@@ -344,7 +329,6 @@ function PostPanel({ editing, onClose, onSuccess }) {
   );
 }
 
-/* ── Main Admin Updates Page ─────────────────────────────────────────── */
 export default function AdminUpdates() {
   const [posts, setPosts]             = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -375,8 +359,6 @@ export default function AdminUpdates() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // The backend DELETE /updates/:id should also destroy the Cloudinary asset
-      // using the mediaPublicId stored on the post document
       await api.delete(`/updates/${deleteTarget._id}`);
       toast.success('Post deleted');
       setDeleteTarget(null);

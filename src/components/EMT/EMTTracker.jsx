@@ -3,14 +3,6 @@ import useGPSTracking from "../../hooks/useGPSTracking";
 import { FiMapPin, FiWifi, FiWifiOff, FiAlertCircle } from 'react-icons/fi';
 import api from "../../services/api";
 
-/**
- * EMTTracker
- * Drop this component into your EMT dashboard.
- * It lets the EMT select their assigned ambulance and toggle GPS tracking on/off.
- *
- * Props:
- *   user — the logged-in EMT user object (needs user._id)
- */
 export default function EMTTracker({ user }) {
   const [ambulances, setAmbulances]         = useState([]);
   const [selectedAmbulance, setSelected]    = useState('');
@@ -20,7 +12,6 @@ export default function EMTTracker({ user }) {
   const { isTracking, startTracking, stopTracking, error, lastPing, coords } =
     useGPSTracking(selectedAmbulance);
 
-  // Load ambulances assigned to this EMT
   useEffect(() => {
     const fetchMyAmbulances = async () => {
       try {
@@ -29,7 +20,7 @@ export default function EMTTracker({ user }) {
           a => a.emt?._id === user?._id || a.driver?._id === user?._id
         );
         setAmbulances(mine);
-        if (mine.length === 1) setSelected(mine[0]._id); // auto-select if only one
+        if (mine.length === 1) setSelected(mine[0]._id);
       } catch (e) {
         console.error(e);
       } finally {
@@ -138,7 +129,6 @@ export default function EMTTracker({ user }) {
               value={shiftStatus}
               onChange={e => {
                 setShiftStatus(e.target.value);
-                // immediately send status update
                 if (coords) {
                   api.put(`/admin/fleet/${selectedAmbulance}/location`, {
                     coordinates: coords,

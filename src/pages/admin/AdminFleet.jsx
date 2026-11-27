@@ -19,23 +19,23 @@ const STATUS_COLORS = {
 
 const AMBULANCE_TYPES = ['basic', 'advanced', 'neonatal', 'bariatric', 'air'];
 const EQUIPMENT_OPTIONS = [
-  // Airway & Breathing
+  
   'Defibrillator', 'AED', 'Oxygen Cylinder', 'Bag-Valve Mask (BVM)',
   'Suction Unit', 'Pulse Oximeter', 'Capnography Monitor',
   'Nebulizer', 'Laryngoscope', 'Endotracheal Tubes', 'Supraglottic Airway',
-  // Circulation & Monitoring
+  
   'IV Kit', 'IV Fluids', 'Blood Pressure Cuff', 'ECG Monitor',
   'Cardiac Monitor', 'Glucometer', 'Thermometer', 'Tourniquet',
-  // Trauma & Immobilization
+  
   'Stretcher', 'Scoop Stretcher', 'Spinal Board', 'Cervical Collar',
   'Splints', 'Traction Splint', 'Pelvic Binder', 'Burn Kit',
   'Wound Dressing Kit', 'Hemostatic Gauze', 'Chest Seal',
-  // Medication
+  
   'Epinephrine (EpiPen)', 'Aspirin', 'Nitroglycerin', 'Naloxone (Narcan)',
   'Glucose Gel', 'Normal Saline', 'Morphine', 'Diazepam',
-  // Obstetric & Neonatal
+  
   'Delivery Kit', 'Neonatal Resuscitator', 'Cord Clamp',
-  // General
+  
   'First Aid Kit', 'PPE Kit', 'Blankets', 'Communication Radio',
   'Torch / Flashlight', 'Safety Vest',
 ];
@@ -50,7 +50,6 @@ const KENYA_COUNTIES = [
   'Kwale','Makueni','Kitui'
 ];
 
-// ── Leaflet CSS (injected once) ───────────────────────────────────────────────
 function ensureLeafletCSS() {
   if (document.getElementById('leaflet-css')) return;
   const link = document.createElement('link');
@@ -60,7 +59,6 @@ function ensureLeafletCSS() {
   document.head.appendChild(link);
 }
 
-// ── Leaflet loader ────────────────────────────────────────────────────────────
 function loadLeaflet() {
   return new Promise((resolve) => {
     if (window.L) return resolve(window.L);
@@ -79,7 +77,6 @@ function loadLeaflet() {
   });
 }
 
-// ── SVG pin icon for each ambulance ──────────────────────────────────────────
 function makeDivIcon(L, color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
     <circle cx="18" cy="18" r="14" fill="${color}" opacity="0.25"/>
@@ -95,20 +92,18 @@ function makeDivIcon(L, color) {
   });
 }
 
-// ── Live Map component (OpenStreetMap + Leaflet — no API key needed) ──────────
 function FleetMap({ ambulances }) {
   const mapRef      = useRef(null);
   const leafletMap  = useRef(null);
   const markersRef  = useRef({});
   const [mapReady, setMapReady] = useState(false);
 
-  // Init map once
   useEffect(() => {
     let cancelled = false;
     loadLeaflet().then((L) => {
       if (cancelled || !mapRef.current || leafletMap.current) return;
       leafletMap.current = L.map(mapRef.current, {
-        center: [-1.2921, 36.8219], // Kenya center (lat, lng)
+        center: [-1.2921, 36.8219],
         zoom: 6,
         zoomControl: true,
       });
@@ -129,7 +124,6 @@ function FleetMap({ ambulances }) {
     };
   }, []);
 
-  // Update / add / remove markers — only runs after map is confirmed ready
   useEffect(() => {
     if (!mapReady || !leafletMap.current || !window.L) return;
     const L = window.L;
@@ -137,7 +131,6 @@ function FleetMap({ ambulances }) {
     ambulances.forEach(a => {
       const coords = a.location?.coordinates;
       if (!coords || (coords[0] === 0 && coords[1] === 0)) return;
-      // GeoJSON stores [lng, lat] — Leaflet needs [lat, lng]
       const latlng = [coords[1], coords[0]];
       const color  = STATUS_COLORS[a.status] || '#fff';
       const icon   = makeDivIcon(L, color);
@@ -159,7 +152,6 @@ function FleetMap({ ambulances }) {
       }
     });
 
-    // Remove stale markers
     Object.keys(markersRef.current).forEach(id => {
       if (!ambulances.find(a => a._id === id)) {
         markersRef.current[id].remove();
@@ -192,7 +184,6 @@ function FleetMap({ ambulances }) {
   );
 }
 
-// ── Add Ambulance Modal ───────────────────────────────────────────────────────
 function AddAmbulanceModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     registrationNumber: '',
@@ -396,7 +387,6 @@ function AddAmbulanceModal({ onClose, onCreated }) {
   );
 }
 
-// ── Main AdminFleet page ──────────────────────────────────────────────────────
 export default function AdminFleet() {
   const { user } = useAuth();
   const [ambulances, setAmbulances] = useState([]);
@@ -404,11 +394,10 @@ export default function AdminFleet() {
   const [loading, setLoading]       = useState(true);
   const [filters, setFilters]       = useState({ status: '', county: '' });
   const [showModal, setShowModal]   = useState(false);
-  const [activeTab, setActiveTab]   = useState('table'); // 'table' | 'map'
+  const [activeTab, setActiveTab]   = useState('table');
 
   useEffect(() => { fetchFleet(); }, [filters]);
 
-  // Join admin socket room so server can push ambulance_location_update events
   useEffect(() => {
     if (user?._id) joinUserRoom(user._id);
     const socket = getSocket();
@@ -419,7 +408,6 @@ export default function AdminFleet() {
     }
   }, [user?._id]);
 
-  // Poll every 15s as fallback so map stays fresh even if socket misses an event
   useEffect(() => {
     const interval = setInterval(fetchFleet, 15000);
     return () => clearInterval(interval);
@@ -438,7 +426,6 @@ export default function AdminFleet() {
     finally { setLoading(false); }
   };
 
-  // Live location updates via socket
   useSocket('ambulance_location_update', (data) => {
     const ambulanceId = data.ambulanceId || data.id;
     setAmbulances(prev => prev.map(a =>
@@ -450,7 +437,7 @@ export default function AdminFleet() {
 
   const handleCreated = (ambulance) => {
     setAmbulances(prev => [ambulance, ...prev]);
-    fetchFleet(); // refresh stats
+    fetchFleet();
   };
 
   return (

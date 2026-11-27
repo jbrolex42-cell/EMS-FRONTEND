@@ -14,11 +14,8 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('Profile');
   const [saving, setSaving] = useState(false);
   const { user, updateUser, refreshUser } = useAuth();
-
-  // Avatar upload state
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarRef = useRef();
-
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -41,7 +38,7 @@ export default function Settings() {
       const { data: res } = await api.post('/uploads/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // Save the returned URL to the user profile
+
       await api.put('/users/profile', { avatarUrl: res.url });
       await refreshUser();
       toast.success('Profile photo updated');
@@ -53,7 +50,6 @@ export default function Settings() {
     }
   };
 
-  // Emergency contacts state
   const [contacts, setContacts] = useState(user?.emergencyContacts || []);
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactSaving, setContactSaving] = useState(false);

@@ -10,7 +10,7 @@ export default function AdminHospitals() {
   const [county, setCounty]   = useState('');
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(1);
-  const [key, setKey]         = useState(0); // forces re-filter on refresh
+  const [key, setKey]         = useState(0); 
 
   const filtered = HOSPITALS_DATA.filter(h => {
     const matchCounty = !county || h.county === county;

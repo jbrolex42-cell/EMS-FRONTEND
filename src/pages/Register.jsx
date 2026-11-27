@@ -52,7 +52,6 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await registerUser({ ...data, role: selectedRole });
-      // Show "check your email" screen instead of going to dashboard
       setRegisteredEmail(data.email);
       setRegistered(true);
     } catch (err) {
@@ -83,7 +82,6 @@ export default function Register() {
     { icon: '🕐', text: '24/7 emergency response' }
   ];
 
-  // ── Show this screen after successful registration ──
   if (registered) {
     return (
       <div className="min-h-screen bg-ems-black flex items-center justify-center p-6">

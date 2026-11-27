@@ -4,7 +4,6 @@ import { initSocket, disconnectSocket, joinUserRoom } from '../services/socketSe
 
 const AuthContext = createContext(null);
 
-// Role-based redirect map — single source of truth
 export const ROLE_HOME = {
   patient:    '/dashboard',
   emt:        '/emt',
@@ -17,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: if a token exists in localStorage, verify it with the server
   useEffect(() => {
     const token = localStorage.getItem('ems_token');
     if (token) {
@@ -40,7 +38,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login — returns { user, token } so callers can read user.role for redirect
   const login = async (credentials) => {
     const { data } = await authService.login(credentials);
     localStorage.setItem('ems_token', data.token);
@@ -51,7 +48,6 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  // Register
   const register = async (userData) => {
     const { data } = await authService.register(userData);
     localStorage.setItem('ems_token', data.token);
@@ -89,7 +85,6 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       refreshUser,
       isAuthenticated: !!user,
-      // token still accessible from localStorage directly by api.js interceptor
     }}>
       {children}
     </AuthContext.Provider>

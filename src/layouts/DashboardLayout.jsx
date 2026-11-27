@@ -1,4 +1,3 @@
-// layouts/DashboardLayout.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -26,20 +25,16 @@ export default function DashboardLayout({ children, title = '' }) {
   return (
     <div className="min-h-screen bg-ems-black flex">
 
-      {/* ── Sidebar ─────────────────────────────────────────────── */}
       <Sidebar
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* ── Main column ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* ── Header ──────────────────────────────────────────────── */}
         <header className="h-14 md:h-16 bg-ems-dark border-b border-ems-border
                            flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-3">
 
-          {/* Hamburger – mobile only */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl
@@ -50,15 +45,12 @@ export default function DashboardLayout({ children, title = '' }) {
             <FiMenu size={18} />
           </button>
 
-          {/* Page title */}
           <h1 className="flex-1 text-ems-white font-semibold text-base md:text-lg truncate">
             {title}
           </h1>
 
-          {/* Right actions */}
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
 
-            {/* SOS quick button – patients on mobile */}
             {user?.role === 'patient' && (
               <Link
                 to="/emergency"
@@ -71,7 +63,6 @@ export default function DashboardLayout({ children, title = '' }) {
               </Link>
             )}
 
-            {/* ── Notification bell (now functional) ───────────── */}
             <div className="relative">
               <button
                 onClick={togglePanel}
@@ -85,7 +76,6 @@ export default function DashboardLayout({ children, title = '' }) {
               >
                 <FiBell size={16} />
 
-                {/* Unread badge */}
                 {unreadCount > 0 && (
                   <span
                     className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5
@@ -98,7 +88,6 @@ export default function DashboardLayout({ children, title = '' }) {
                 )}
               </button>
 
-              {/* Panel dropdown */}
               {panelOpen && (
                 <NotificationPanel
                   notifications={notifications}
@@ -113,7 +102,6 @@ export default function DashboardLayout({ children, title = '' }) {
               )}
             </div>
 
-            {/* User info – hidden on very small screens */}
             <div className="hidden sm:block text-right">
               <p className="text-ems-white text-sm font-medium leading-tight">
                 {user?.firstName} {user?.lastName}
@@ -124,7 +112,6 @@ export default function DashboardLayout({ children, title = '' }) {
           </div>
         </header>
 
-        {/* ── Page content ────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>

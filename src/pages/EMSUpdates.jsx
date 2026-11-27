@@ -15,7 +15,6 @@ const TYPE_CONFIG = {
   video:   { label: 'Video',   color: 'bg-red-500/20 text-red-400 border-red-500/20',       dot: 'bg-red-400' },
 };
 
-/* ── Lightbox ────────────────────────────────────────────────────────── */
 function Lightbox({ post, onClose }) {
   useEffect(() => {
     const handler = (e) => e.key === 'Escape' && onClose();
@@ -34,7 +33,6 @@ function Lightbox({ post, onClose }) {
           </button>
         </div>
 
-        {/* Media */}
         {post.type === 'video' && post.mediaUrl ? (
           <video src={post.mediaUrl} controls className="w-full max-h-96 object-cover" />
         ) : post.mediaUrl ? (
@@ -65,7 +63,6 @@ function Lightbox({ post, onClose }) {
   );
 }
 
-/* ── Post Card ───────────────────────────────────────────────────────── */
 function PostCard({ post, onClick }) {
   const cfg = TYPE_CONFIG[post.type] || TYPE_CONFIG.news;
 
@@ -73,7 +70,6 @@ function PostCard({ post, onClick }) {
     <div onClick={() => onClick(post)}
       className="group ems-card cursor-pointer hover:border-emergency-red/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emergency-red/5 flex flex-col">
 
-      {/* Thumbnail */}
       {post.mediaUrl && post.type !== 'video' ? (
         <div className="relative -mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl h-44">
           <img src={post.mediaUrl} alt={post.title}
@@ -125,7 +121,6 @@ function PostCard({ post, onClick }) {
   );
 }
 
-/* ── Featured Hero Post ──────────────────────────────────────────────── */
 function FeaturedPost({ post, onClick }) {
   if (!post) return null;
   return (
@@ -161,7 +156,6 @@ function FeaturedPost({ post, onClick }) {
   );
 }
 
-/* ── Main Page ───────────────────────────────────────────────────────── */
 export default function EMSUpdates() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +167,6 @@ export default function EMSUpdates() {
 
   useEffect(() => { fetchPosts(); }, [page, activeType]);
 
-  // debounce search
   useEffect(() => {
     const t = setTimeout(() => { setPage(1); fetchPosts(); }, 400);
     return () => clearTimeout(t);
@@ -188,7 +181,7 @@ export default function EMSUpdates() {
       setTotal(res.data.total || 0);
     } catch (e) {
       console.error(e);
-      // fallback empty state
+      
       setPosts([]);
     } finally {
       setLoading(false);
@@ -202,7 +195,6 @@ export default function EMSUpdates() {
     <div className="min-h-screen bg-ems-black">
       {selected && <Lightbox post={selected} onClose={() => setSelected(null)} />}
 
-      {/* ── Nav ── */}
       <nav className="sticky top-0 z-40 bg-ems-black/90 backdrop-blur-md border-b border-ems-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
@@ -222,7 +214,6 @@ export default function EMSUpdates() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
 
-        {/* ── Header ── */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-emergency-red animate-pulse" />
@@ -232,7 +223,6 @@ export default function EMSUpdates() {
           <p className="text-ems-muted text-sm">Latest news, articles, photos and videos from EMS Kenya</p>
         </div>
 
-        {/* ── Search + Filter ── */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ems-muted" size={14} />
@@ -258,10 +248,7 @@ export default function EMSUpdates() {
           </div>
         </div>
 
-        {/* ── Featured ── */}
         {!loading && featured && <FeaturedPost post={featured} onClick={setSelected} />}
-
-        {/* ── Grid ── */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[...Array(6)].map((_, i) => (
@@ -291,7 +278,6 @@ export default function EMSUpdates() {
           </div>
         )}
 
-        {/* ── Pagination ── */}
         {total > 9 && (
           <div className="flex items-center justify-center gap-3 mt-10">
             <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
@@ -307,7 +293,6 @@ export default function EMSUpdates() {
         )}
       </div>
 
-      {/* ── Footer ── */}
       <footer className="border-t border-ems-border mt-16 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-ems-muted text-xs">© {new Date().getFullYear()} EMS Kenya. All rights reserved.</p>

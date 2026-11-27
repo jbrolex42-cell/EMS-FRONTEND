@@ -38,7 +38,6 @@ const roleLabel = {
   admin: 'Admin', superadmin: 'Super Admin', hospital: 'Hospital'
 };
 
-// ── Sidebar inner content (shared between desktop & mobile drawer) ────────────
 function SidebarContent({ onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -166,26 +165,20 @@ function SidebarContent({ onClose }) {
   );
 }
 
-// ── Main Sidebar export ───────────────────────────────────────────────────────
-// Props:  mobileOpen (bool)  — controlled by DashboardLayout
-//         onClose    (fn)    — called when backdrop or X clicked
 export default function Sidebar({ mobileOpen = false, onClose }) {
   const drawerRef = useRef(null);
   const location = useLocation();
 
-  // Close drawer on route change
   useEffect(() => {
     onClose?.();
   }, [location.pathname]);
 
-  // Close on Escape key
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Lock body scroll when drawer is open on mobile
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = 'hidden';

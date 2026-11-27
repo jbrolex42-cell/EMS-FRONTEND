@@ -1,6 +1,3 @@
-// Shared Kenya hospitals dataset — used in Hospitals.jsx, AdminHospitals.jsx, EMTDashboard.jsx
-// Levels 3–6 across all 47 counties
-
 export const HOSPITALS_DATA = [
   // ── NAIROBI COUNTY ──
   { _id: '1',   name: 'Kenyatta National Hospital',                         type: 'public',  level: 'level_6', county: 'Nairobi',        address: 'Hospital Road, Nairobi',              phone: '020 2726300', shaEmpanelled: true,  capabilities: { icu: true,  emergency: true, surgery: true, maternity: true  } },
@@ -167,7 +164,6 @@ export const HOSPITALS_DATA = [
   { _id: '108', name: 'Nyahururu County Referral Hospital',                 type: 'public',  level: 'level_4', county: 'Laikipia',       address: 'Nyahururu Town',                      phone: '065 2032000', shaEmpanelled: true,  capabilities: { emergency: true, surgery: true, maternity: true  } },
 ];
 
-// Helpers consumed by multiple pages
 export const LEVEL_LABEL = {
   level_2: 'Dispensary',
   level_3: 'Health Centre',

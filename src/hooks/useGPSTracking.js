@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import api from "../services/api";
 
-const PING_INTERVAL = 15000; // 15 seconds
+const PING_INTERVAL = 15000;
 
 export default function useGPSTracking(ambulanceId) {
   const [isTracking, setIsTracking] = useState(false);
@@ -13,7 +13,6 @@ export default function useGPSTracking(ambulanceId) {
   const intervalRef = useRef(null);
   const latestCoordsRef = useRef(null);
 
-  // Send GPS coordinates to backend
   const sendLocation = useCallback(
     async (coordinates, status = "available") => {
       if (!ambulanceId || !coordinates) return;
@@ -34,7 +33,6 @@ export default function useGPSTracking(ambulanceId) {
     [ambulanceId]
   );
 
-  // Stop tracking
   const stopTracking = useCallback(async () => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -61,7 +59,6 @@ export default function useGPSTracking(ambulanceId) {
     setIsTracking(false);
   }, [ambulanceId]);
 
-  // Start GPS tracking
   const startTracking = useCallback(
     (status = "available") => {
       if (isTracking) return;
@@ -100,7 +97,6 @@ export default function useGPSTracking(ambulanceId) {
         }
       );
 
-      // Send current location immediately
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const location = [
@@ -117,7 +113,6 @@ export default function useGPSTracking(ambulanceId) {
         }
       );
 
-      // Send updates every 15 seconds
       intervalRef.current = setInterval(() => {
         if (latestCoordsRef.current) {
           sendLocation(latestCoordsRef.current, status);
@@ -127,7 +122,6 @@ export default function useGPSTracking(ambulanceId) {
     [ambulanceId, isTracking, sendLocation, stopTracking]
   );
 
-  // Cleanup when component unmounts
   useEffect(() => {
     return () => {
       stopTracking();
